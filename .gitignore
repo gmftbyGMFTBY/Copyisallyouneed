@@ -130,9 +130,6 @@ bak/
 ckpt/
 log/
 rest/
-data/
-data/arxiv_data
-data/chinese_wiki
 benchmarks/*.md
 *pretrained
 indexdir/
