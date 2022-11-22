@@ -1,4 +1,5 @@
 import pickle
+import jieba
 import torch
 import multiprocessing
 from itertools import chain
@@ -44,7 +45,7 @@ class SearchItem:
         punc,
     ):
         self.text = base_data[item[0]]
-        self.data, self.data_pos = list(self.text), []
+        self.data, self.data_pos = list(jieba.cut(self.text)), []
 
         self.candidates = [i for i in list(item[1]) if i != item[0]]
         self.min_length, self.max_length = min_length, max_length
@@ -130,6 +131,18 @@ class SearchItem:
         if self.pointer < len(self.data):
             self.pointer -= 1
 
+def clean_data(result):
+    units = []
+    empty_cache = []
+    for unit in result:
+        if unit[1]:
+            units.append((''.join(empty_cache), []))
+            units.append(unit)
+            empty_cache = []
+        else:
+            empty_cache.append(unit[0])
+    return units
+
 def search_for_multiple_instance(
     min_length,
     max_length,
@@ -144,7 +157,7 @@ def search_for_multiple_instance(
             searchitem = SearchItem(min_length, max_length, item, punc)
             searchitem.move()
             results_overall.append({
-                'results': searchitem.result,
+                'results': clean_data(searchitem.result),
                 'index': searchitem.index
             })
             if len(results_overall) % 1000 == 0:

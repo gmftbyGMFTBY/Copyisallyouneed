@@ -1,18 +1,16 @@
 from header import *
-from .utils import *
 from .util_func import *
-from itertools import accumulate
 
 
 class CopyisallyouneedWikitext103Dataset(Dataset):
     
-    def __init__(self, vocab, path, **args):
+    def __init__(self, **args):
         self.args = args
-        self.vocab = vocab
-        self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_tokenizer'][args['lang']])
-        self.data_root_path = f'/apdcephfs/share_916081/johntianlan/copygeneration_wikitext103'
-        file_num = 8
-        self.file_lists = [f'{self.data_root_path}/backup_v4_data/searched_results_{i}.txt' for i in range(file_num)]
+        self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
+        self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
+        self.data_root_path = args['data_root_dir']
+        file_num = 1
+        self.file_lists = [f'{self.data_root_path}/bm25_search_result_{i}.txt' for i in range(file_num)]
         self.size = 0
         for path in self.file_lists:
             self.size += iter_count(path)
@@ -36,8 +34,9 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
             for line in tqdm(f.readlines()):
                 line = line.strip().split('\t')
                 chunk = ' '.join(line[:-1])
-                id_label = line[-1]
-                base_data[id_label] = chunk
+                id_label = line[-1].strip()
+                if id_label:
+                    base_data[id_label] = chunk
         self.base_data = base_data
         print(f'[!] load base data over')
 
@@ -191,27 +190,19 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
 
 class CopyisallyouneedChineseDataset(Dataset):
     
-    def __init__(self, vocab, path, **args):
+    def __init__(self, **args):
         self.args = args
-        self.vocab = vocab
-        self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_tokenizer'][args['lang']])
-        if self.args['dataset'] == 'wikitext103':
-            self.data_root_path = f'/apdcephfs/share_916081/johntianlan/copygeneration_wikitext103'
-            # self.data_root_path = f'/apdcephfs/share_916081/johntianlan/copygeneration_wikitext103'
-            file_num = 8
-        else:
-            self.data_root_path = f'/apdcephfs/share_916081/johntianlan/copygeneration_data'
-            file_num = 8
-        self.file_lists = [f'{self.data_root_path}/backup_v4_data/searched_results_{i}.txt' for i in range(file_num)]
-        # self.file_lists = [f'{self.data_root_path}/backup_v2_data/searched_results_debug.txt' for i in range(file_num)]
+        self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
+        self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
+
+        self.data_root_path = args['data_root_dir']
+        file_num = 1
+        self.file_lists = [f'{self.data_root_path}/bm25_search_result_{i}.txt' for i in range(file_num)]
         self.size = 0
         for path in self.file_lists:
             self.size += iter_count(path)
-        # self.file_lists = [f'{self.data_root_path}/test_overfit.txt' for i in range(8)]
-        # self.size = iter_count(self.file_lists[0])
 
         if self.args['mode'] == 'train':
-            # new_seed = args['seed'] + args['local_rank']
             new_seed = args['seed'] + args['global_rank']
             random.seed(new_seed)
             random.shuffle(self.file_lists)
@@ -229,7 +220,6 @@ class CopyisallyouneedChineseDataset(Dataset):
         with open(f'{self.data_root_path}/base_data.txt') as f:
             for line in tqdm(f.readlines()):
                 line = line.strip().split('\t')
-                # chunk = ' [SEP] '.join(line[:-1])
                 chunk = ' '.join(line[:-1])
                 id_label = line[-1]
                 base_data[id_label] = chunk
@@ -271,20 +261,11 @@ class CopyisallyouneedChineseDataset(Dataset):
             # collect documents
             docs, ids, counter, delta_ = [], [], 0, 0
             for item_, docid in item['results'][self.last_delta:]:
-                # only for engish
                 length_s = len(item_)
                 item_o = item_
-
-                if self.args['lang'] == 'en':
-                    # replace the <unk> with <|endoftext|>
-                    item_ = item_.replace('<unk>', '<|endoftext|>')
-                    item_ = item_.replace('@,@', ',')
-                    item_ = item_.replace('@.@', '.')
-                    item_ = item_.replace('@-@', '-')
-                if self.args['lang'] == 'en' and counter > 0:
-                    item_ = ' ' + item_
-
                 items = self.vocab.encode(item_, add_special_tokens=False)
+                if len(items) == 0:
+                    continue
                 if len(ids) + len(items) > self.args['max_len']:
                     self.last_delta += delta_
                     self.if_last_over = False
@@ -318,22 +299,6 @@ class CopyisallyouneedChineseDataset(Dataset):
                 doc_ = self.base_data[docid]
                 pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc+length_s:]
                 phrase = doc_[pos_in_doc:pos_in_doc+length_s]
-                if self.args['lang'] == 'en':
-                    # bert-base-cased UNK replacement
-                    phrase = phrase.replace('<unk>', '[UNK]')
-                    phrase = phrase.replace('@,@', ',')
-                    phrase = phrase.replace('@.@', '.')
-                    phrase = phrase.replace('@-@', '-')
-
-                    pre_phrase = pre_phrase.replace('<unk>', '[UNK]')
-                    pre_phrase = pre_phrase.replace('@,@', ',')
-                    pre_phrase = pre_phrase.replace('@.@', '.')
-                    pre_phrase = pre_phrase.replace('@-@', '-')
-
-                    post_phrase = post_phrase.replace('<unk>', '[UNK]')
-                    post_phrase = post_phrase.replace('@,@', ',')
-                    post_phrase = post_phrase.replace('@.@', '.')
-                    post_phrase = post_phrase.replace('@-@', '-')
                 phrase_ids = self.bert_vocab.encode(phrase, add_special_tokens=False)
                 pre_phrase_ids = self.bert_vocab.encode(pre_phrase, add_special_tokens=False)
                 post_phrase_ids = self.bert_vocab.encode(post_phrase, add_special_tokens=False)

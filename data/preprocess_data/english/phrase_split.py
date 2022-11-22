@@ -44,7 +44,7 @@ class SearchItem:
         punc,
     ):
         self.text = base_data[item[0]]
-        self.data, self.data_pos = list(self.text), []
+        self.data, self.data_pos = self.text.split(), []
 
         self.candidates = [i for i in list(item[1]) if i != item[0]]
         self.min_length, self.max_length = min_length, max_length
@@ -87,7 +87,7 @@ class SearchItem:
             self.save_once()
 
     def search_now(self):
-        string = ''.join(self.cache)
+        string = ' '.join(self.cache)
         index, docid = -1, -1
         for did in self.candidates:
             doc = base_data[did]
@@ -111,7 +111,7 @@ class SearchItem:
         self.current_rest = rest
 
     def save_once(self):
-        self.result.append((''.join(self.cache), self.current_rest))
+        self.result.append((' '.join(self.cache), self.current_rest))
         self.cache = []
         self.last_rest, self.current_rest = [], []
 
@@ -137,14 +137,14 @@ def search_for_multiple_instance(
     args,
     path
 ):
-    punc = set("!~`@$%?><_-=+&*()[]|\.,，。！？｡＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏.!?`[]{}'';:><+=-_&^%$#@《》/\\")
+    punc = set([',', '.', '"', "'", '?', '!', '@', '-', '<', '>', ':', ';', '/', '_', '+', '=', '~', '`', '#', '$', '%', '^', '&', '*', '(', ')', '[', ']', '{', '}'])
     results_overall = []
     with open(path, 'w') as f:
         for item in tqdm(jobs):
             searchitem = SearchItem(min_length, max_length, item, punc)
             searchitem.move()
             results_overall.append({
-                'results': searchitem.result,
+                'results': clean_data(searchitem.result),
                 'index': searchitem.index
             })
             if len(results_overall) % 1000 == 0:
@@ -157,16 +157,31 @@ def search_for_multiple_instance(
                 item = json.dumps(item, ensure_ascii=False)
                 f.write(f'{item}\n')
 
+def clean_data(result):
+    units = []
+    empty_cache = []
+    for unit in result:
+        if unit[1]:
+            if empty_cache:
+                units.append((' '.join(empty_cache), []))
+            units.append(unit)
+            empty_cache = []
+        else:
+            empty_cache.append(unit[0])
+    return units
+
+
+
 def main_search(args, jobs, idx, path):
     pbar = tqdm(jobs)
     batch_size = args['bsz']
-    min_length, max_length = 2, 32
+    min_length, max_length = 2, 16
     search_for_multiple_instance(min_length, max_length, jobs, args, path)
 
 if __name__ == '__main__':
     args = vars(parser_args())
     idx = args['worker_id']
-    base_data = load_base_data(f'../{args["dataset"]}/base_data.txt')
-    jobs = pickle.load(open(f'../{args["dataset"]}/bm25_search_chunk_{idx}.pkl', 'rb'))
+    base_data = load_base_data(f'../../{args["dataset"]}/base_data.txt')
+    jobs = pickle.load(open(f'../../{args["dataset"]}/bm25_search_chunk_{idx}.pkl', 'rb'))
     print(f'[!] collect {len(jobs)} data samples; begin to search for {idx} woker')
-    main_search(args, jobs, idx, f'../{args["dataset"]}/bm25_search_result_{idx}.txt')
+    main_search(args, jobs, idx, f'../../{args["dataset"]}/bm25_search_result_{idx}.txt')

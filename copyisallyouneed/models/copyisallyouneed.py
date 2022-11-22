@@ -1,19 +1,17 @@
-from model.utils import *
-
+from header import *
 
 class Copyisallyouneed(nn.Module):
 
     def __init__(self, **args):
         super(Copyisallyouneed, self).__init__()
         self.args = args
-        model_name = args['pretrained_model']
 
         # bert-encoder model
-        self.phrase_encoder = BertModel.from_pretrained(
+        self.phrase_encoder = AutoModel.from_pretrained(
             self.args['phrase_encoder_model'][self.args['lang']]
         )
         self.bert_tokenizer = AutoTokenizer.from_pretrained(
-            self.args['phrase_tokenizer'][self.args['lang']]
+            self.args['phrase_encoder_tokenizer'][self.args['lang']]
         )
         
         # only fine-tune the last transformer layer parameters
@@ -23,7 +21,7 @@ class Copyisallyouneed(nn.Module):
         # print(f'[!] only the last BERT layer is fine-tuned')
         
         # model and tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.args['prefix_encoder_tokenizer'][self.args['lang']])
         self.vocab_size = len(self.tokenizer)
         if self.args['lang'] == 'zh':
             self.pad = self.tokenizer.pad_token_id
@@ -34,8 +32,12 @@ class Copyisallyouneed(nn.Module):
             self.unk = self.tokenizer.bos_token_id
             self.sep = self.tokenizer.bos_token_id
 
-        self.model = GPT2LMHeadModel.from_pretrained(model_name)
+        self.model = GPT2LMHeadModel.from_pretrained(self.args['prefix_encoder_model'][self.args['lang']])
         self.token_embeddings = nn.Parameter(torch.randn((len(self.tokenizer), 768*2)))
+        self.h_proj = nn.Sequential(
+            nn.Dropout(p=args['dropout']),
+            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size*2)
+        )
         self.s_proj = nn.Sequential(
             nn.Dropout(p=args['dropout']),
             nn.Tanh(),
@@ -58,7 +60,7 @@ class Copyisallyouneed(nn.Module):
     def get_query_rep(self, ids):
         self.eval()
         output = self.model(input_ids=ids, output_hidden_states=True)['hidden_states'][-1][:, -1, :]
-        return output
+        return self.h_proj(output)
 
     def get_token_loss(self, ids, hs, ids_mask):
         # no pad token
@@ -80,7 +82,7 @@ class Copyisallyouneed(nn.Module):
         ids, ids_mask = batch['ids'], batch['ids_mask']
         bsz, seqlen = ids.size()
         outputs = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)
-        last_hidden_states = outputs.hidden_states[-1]
+        last_hidden_states = self.h_proj(outputs.hidden_states[-1])
         loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
 
         ## bert
@@ -97,7 +99,6 @@ class Copyisallyouneed(nn.Module):
         start_embeddings, end_embeddings = [], []
         token_start_embeddings, token_end_embeddings = [], []
         start_pos, end_pos = [], []
-        token_start_pos, token_end_pos = [], []
         mask_pos = []
         counter = self.vocab_size
         for idx in range(doc_bsz):

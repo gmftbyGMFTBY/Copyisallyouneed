@@ -1,4 +1,4 @@
-phrsae_encoder_tokenizer: 
+phrase_encoder_tokenizer: 
     zh: /apdcephfs/share_916081/johntianlan/bert-base-chinese
     en: /apdcephfs/share_916081/johntianlan/bert-base-cased
 phrase_encoder_model: 
@@ -24,8 +24,8 @@ train:
     iter_to_accumulate: 1
     max_doc_size: 256
     buffer_size: 81920
-    total_step: 200010
-    save_every: 10000
+    total_step: 10010
+    save_every: 1000
     temp: 0.07
     min_phrase_length: 1
     max_phrase_length: 16

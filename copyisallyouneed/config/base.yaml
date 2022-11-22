@@ -1,14 +1,15 @@
 datasets: 
     wikitext103: en
-    chinese_document: zh
+    chinese_documents: zh
 
 models:
-    phrase-copy: 
+    copyisallyouneed: 
         model_name: Copyisallyouneed
-        dataset_name: CopyisallyouneedWikitext103Dataset
-        # dataset_name: CopyisallyouneedChineseDataset
+        # dataset_name: CopyisallyouneedWikitext103Dataset
+        dataset_name: CopyisallyouneedChineseDataset
 
 # ========= Global configuration ========== #
-root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/
+root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed
+data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/chinese_documents
 version: 2000
 # ========= Global configuration ========== #

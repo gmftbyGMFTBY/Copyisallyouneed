@@ -6,7 +6,7 @@ import numpy as np
 import json
 
 data = []
-with open('searched_results_0.txt') as f:
+with open('../../chinese_documents/bm25_search_result_0.txt') as f:
     for line in f.readlines():
         data.append(json.loads(line))
 print(f'[!] find {len(data)} samples')

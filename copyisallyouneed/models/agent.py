@@ -1,10 +1,9 @@
-from model.utils import *
-from dataloader.util_func import *
+from header import *
 
-class Agent(RetrievalBaseAgent):
+class Agent:
     
     def __init__(self, model, args):
-        super(RepresentationAgent, self).__init__()
+        super(Agent, self).__init__()
         self.args = args
         self.model = model
         self.load_last_step = None
@@ -12,11 +11,28 @@ class Agent(RetrievalBaseAgent):
         if torch.cuda.is_available():
             self.model.cuda()
 
-        if args['mode'] in ['train', 'inference']:
+        if args['mode'] in ['train']:
             self.set_optimizer_scheduler_ddp()
-            if args['mode'] in ['train']:
-                self.set_test_interval()
         self.load_latest_checkpoint()
+
+    def set_optimizer_scheduler_ddp(self):
+        if self.args['mode'] in ['train']:
+            self.optimizer = transformers.AdamW(
+                self.model.parameters(), 
+                lr=self.args['lr'],
+            )
+            self.scaler = GradScaler()
+            self.scheduler = transformers.get_linear_schedule_with_warmup(
+                self.optimizer, 
+                num_warmup_steps=self.args['warmup_step'], 
+                num_training_steps=self.args['total_step'],
+            )
+            self.model = nn.parallel.DistributedDataParallel(
+                self.model, 
+                device_ids=[self.args['local_rank']], 
+                output_device=self.args['local_rank'],
+                find_unused_parameters=True,
+            )
 
     def load_model(self, path):
         # ========== common case ========== #
@@ -71,9 +87,8 @@ class Agent(RetrievalBaseAgent):
         pbar.update(1)
 
     def load_latest_checkpoint(self):
-        pretrained_model_name = self.args['pretrained_model'].replace('/', '_')
         path = f'{self.args["root_dir"]}/ckpt/{self.args["dataset"]}/{self.args["model"]}'
-        prefix_name = f'best_{pretrained_model_name}_{self.args["version"]}_'
+        prefix_name = f'best_{self.args["version"]}_'
         checkpoints = []
         for file in os.listdir(path):
             if prefix_name in file:

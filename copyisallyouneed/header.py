@@ -1,5 +1,4 @@
 import torch
-from gpu_memory_track import MemTracker
 import inspect
 from pynvml import *
 from typing import List, Optional, Tuple, Union
@@ -34,9 +33,10 @@ import hashlib
 import logging
 from copy import deepcopy
 import ipdb
-from transformers import BertTokenizer, BertTokenizerFast, XLMRobertaTokenizerFast, AutoModel, AutoTokenizer, T5ForConditionalGeneration, BartForSequenceClassification, BartModel, BartForConditionalGeneration, ElectraPreTrainedModel, ElectraForSequenceClassification, AutoModelForPreTraining
-from transformers.activations import ACT2FN, get_activation
+import transformers
+from transformers import BertTokenizer, AutoModel, AutoTokenizer, GPT2LMHeadModel
 import pickle
+from torch.cuda.amp import autocast, GradScaler
 import argparse
 from torch.nn.utils.rnn import pad_sequence
 import joblib

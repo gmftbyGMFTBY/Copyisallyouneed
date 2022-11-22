@@ -20,15 +20,4 @@ if __name__ == "__main__":
                 path = f'{root_dir}/{folder}/{dataset}/{model}'
                 if not os.path.exists(path):
                     os.mkdir(path)
-        if folder == 'ckpt':
-            for dataset in datasets:
-                path = f'{root_dir}/ckpt/{dataset}/bert-post'
-                if not os.path.exists(path):
-                    os.mkdir(path)
-        elif folder == 'log':
-            # pipeline and pipeline_evaluation
-            for dataset in datasets:
-                path = f'{root_dir}/log/{dataset}/pipeline'
-                if not os.path.exists(path):
-                    os.mkdir(path)
     print(f'[!] init the folder under the {root_dir} over')
