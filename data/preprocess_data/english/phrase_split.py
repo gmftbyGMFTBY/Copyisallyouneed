@@ -45,8 +45,10 @@ class SearchItem:
     ):
         self.text = base_data[item[0]]
         self.data, self.data_pos = self.text.split(), []
+        self.self_doc_index = item[0]
 
         self.candidates = [i for i in list(item[1]) if i != item[0]]
+        self.candidates = [self.self_doc_index] + self.candidates
         self.min_length, self.max_length = min_length, max_length
         self.pointer = 0
         self.result = []
@@ -95,9 +97,18 @@ class SearchItem:
                 index = doc.index(string)
             except:
                 continue
-            if index != -1:
-                docid = did
-                break
+            if did == self.self_doc_index:
+                doc_prefix_ = doc[:index].replace(' ', '')
+                cache_prefix_ = ' '.join([item[0] for item in self.result]).replace(' ', '')
+                if doc_prefix_ != cache_prefix_ and len(doc_prefix_) < len(cache_prefix_):
+                    docid = did
+                    break
+                else:
+                    docid, index = -1, -1
+            else:
+                if index != -1:
+                    docid = did
+                    break
         if docid != -1 and index != -1:
             self.save_current_rest([(docid, index)])
         else:
@@ -168,9 +179,9 @@ def clean_data(result):
             empty_cache = []
         else:
             empty_cache.append(unit[0])
+    if empty_cache:
+        units.append((' '.join(empty_cache), []))
     return units
-
-
 
 def main_search(args, jobs, idx, path):
     pbar = tqdm(jobs)

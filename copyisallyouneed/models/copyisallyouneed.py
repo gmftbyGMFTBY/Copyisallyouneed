@@ -25,12 +25,8 @@ class Copyisallyouneed(nn.Module):
         self.vocab_size = len(self.tokenizer)
         if self.args['lang'] == 'zh':
             self.pad = self.tokenizer.pad_token_id
-            self.unk = self.tokenizer.unk_token_id
-            self.sep = self.tokenizer.sep_token_id
         else:
             self.pad = self.tokenizer.bos_token_id
-            self.unk = self.tokenizer.bos_token_id
-            self.sep = self.tokenizer.bos_token_id
 
         self.model = GPT2LMHeadModel.from_pretrained(self.args['prefix_encoder_model'][self.args['lang']])
         self.token_embeddings = nn.Parameter(torch.randn((len(self.tokenizer), 768*2)))
@@ -69,6 +65,7 @@ class Copyisallyouneed(nn.Module):
             hs[:, :-1, :],
             self.token_embeddings.t()
         )
+        logits /= self.args['temp']
         loss = self.gen_loss_fct(logits.view(-1, logits.size(-1)), label.reshape(-1))
         chosen_tokens = torch.max(logits, dim=-1)[1]
         gen_acc = (chosen_tokens.reshape(-1) == label.reshape(-1)).to(torch.long)
@@ -123,7 +120,6 @@ class Copyisallyouneed(nn.Module):
 
         # extract query represetnation
         pos_index = batch['pos_ids']    # [B_p]
-        pos_end_index = batch['pos_ids_end']
         vl = batch['vl']
 
         # make the mask_pos
@@ -136,7 +132,7 @@ class Copyisallyouneed(nn.Module):
 
         #### training the query head
         query_reps, token_labels, phrase_labels, counter = [], [], [], 0
-        for ids_, hn, pos_list, pos_list_end, l in zip(ids, last_hidden_states, pos_index, pos_end_index, vl):
+        for ids_, hn, pos_list, l in zip(ids, last_hidden_states, pos_index, vl):
             query_reps.append(hn[:l-1])
             token_labels.append(ids_[1:l])
             pos_list_set = set(pos_list)
@@ -162,6 +158,7 @@ class Copyisallyouneed(nn.Module):
             ], dim=0
         )
         logits = torch.matmul(start_query_reps, candidate_reps.t())
+        logits /= self.args['temp']
         mask = torch.zeros_like(logits)
         mask[range(len(logits)), token_labels] = 1.
         logits[phrase_pos_index, token_start_pos] = -1e3
@@ -177,6 +174,7 @@ class Copyisallyouneed(nn.Module):
             ], dim=0
         )
         logits = torch.matmul(end_query_reps, candidate_reps.t())
+        logits /= self.args['temp']
         mask = torch.zeros_like(logits)
         mask[range(len(logits)), token_labels] = 1.
         logits[phrase_pos_index, token_end_pos] = -1e3
@@ -191,6 +189,7 @@ class Copyisallyouneed(nn.Module):
             start_embeddings], dim=0
         )
         logits = torch.matmul(start_query_reps, candidate_reps.t())    # [Q, B*]   
+        logits /= self.args['temp']
         mask = torch.zeros_like(logits)
         mask[phrase_pos_index, start_pos] = 1.
         
@@ -211,6 +210,7 @@ class Copyisallyouneed(nn.Module):
             end_embeddings], dim=0
         )
         logits = torch.matmul(end_query_reps, candidate_reps.t())    # [Q, B*]  
+        logits /= self.args['temp']
         
         counting = self.vocab_size
         phrase_indexes = phrase_pos_index.to(torch.long).nonzero().squeeze(dim=-1)

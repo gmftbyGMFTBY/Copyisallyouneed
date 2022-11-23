@@ -9,8 +9,9 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
-        file_num = 1
-        self.file_lists = [f'{self.data_root_path}/bm25_search_result_{i}.txt' for i in range(file_num)]
+        self.file_lists = [f'{self.data_root_path}/bm25_search_result_{i}.txt' for i in range(1)]
+
+        # count the number of the samples
         self.size = 0
         for path in self.file_lists:
             self.size += iter_count(path)
@@ -29,6 +30,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
         self.if_last_over = True
         self.last_delta = 0
 
+        # load the base_data
         base_data = {}
         with open(f'{self.data_root_path}/base_data.txt') as f:
             for line in tqdm(f.readlines()):
@@ -72,20 +74,16 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
             item = json.loads(self.cache[0].strip())
             base_index = item['index']
 
-            # collect documents
+            # collect one document
             docs, ids, counter, delta_ = [], [], 0, 0
             for item_, docid in item['results'][self.last_delta:]:
-                # only for engish
                 length_s = len(item_)
-                item_o = item_
-
-                if self.args['lang'] == 'en':
-                    # replace the <unk> with <|endoftext|>
-                    item_ = item_.replace('<unk>', '<|endoftext|>')
-                    item_ = item_.replace('@,@', ',')
-                    item_ = item_.replace('@.@', '.')
-                    item_ = item_.replace('@-@', '-')
-                if self.args['lang'] == 'en' and counter > 0:
+                # replace the <unk> with <|endoftext|>
+                item_ = item_.replace('<unk>', '<|endoftext|>')
+                item_ = item_.replace('@,@', ',')
+                item_ = item_.replace('@.@', '.')
+                item_ = item_.replace('@-@', '-')
+                if counter > 0:
                     item_ = ' ' + item_
 
                 items = self.vocab.encode(item_, add_special_tokens=False)
@@ -94,9 +92,9 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
                     self.if_last_over = False
                     break
                 if docid:
-                    docid = docid[0]
-                    if counter > 0 and item_o == self.base_data[docid[0]][docid[1]:docid[1]+length_s]:
-                        docs.append((counter - 1, length_s, len(items), docid[0], docid[1], item_o))
+                    docid_, doc_pos = docid[0]
+                    if counter > 0:
+                        docs.append((counter - 1, length_s, len(items), docid_, doc_pos))
                 ids.extend(items)
                 counter += len(items)
                 if len(docs) + len(doc_ids) > self.args['max_doc_size']:
@@ -107,8 +105,9 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
             else:
                 self.if_last_over = True
 
-            if len(docs) > 0 and counter - docs[-1][0] <= 2:
+            while len(docs) > 0 and counter - docs[-1][0] <= 5:
                 docs.pop()
+
             if len(ids) > 0:
                 ids_total.append(torch.LongTensor(ids))
                 vl.append(len(ids))
@@ -117,35 +116,39 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
                 self.cache.pop(0)
 
             # encode the documents
-            pos_index, pos_index_end = [], []
-            for pos_in_ids, length_s, length_i, docid, pos_in_doc, item_o in docs:
+            pos_index = []
+            for pos_in_ids, length_s, length_i, docid, pos_in_doc in docs:
                 doc_ = self.base_data[docid]
                 pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc+length_s:]
                 phrase = doc_[pos_in_doc:pos_in_doc+length_s]
-                if self.args['lang'] == 'en':
-                    # bert-base-cased UNK replacement
-                    phrase = phrase.replace('<unk>', '[UNK]')
-                    phrase = phrase.replace('@,@', ',')
-                    phrase = phrase.replace('@.@', '.')
-                    phrase = phrase.replace('@-@', '-')
+                
+                # bert-base-cased UNK replacement
+                phrase = phrase.replace('<unk>', '[UNK]')
+                phrase = phrase.replace('@,@', ',')
+                phrase = phrase.replace('@.@', '.')
+                phrase = phrase.replace('@-@', '-')
 
-                    pre_phrase = pre_phrase.replace('<unk>', '[UNK]')
-                    pre_phrase = pre_phrase.replace('@,@', ',')
-                    pre_phrase = pre_phrase.replace('@.@', '.')
-                    pre_phrase = pre_phrase.replace('@-@', '-')
+                pre_phrase = pre_phrase.replace('<unk>', '[UNK]')
+                pre_phrase = pre_phrase.replace('@,@', ',')
+                pre_phrase = pre_phrase.replace('@.@', '.')
+                pre_phrase = pre_phrase.replace('@-@', '-')
 
-                    post_phrase = post_phrase.replace('<unk>', '[UNK]')
-                    post_phrase = post_phrase.replace('@,@', ',')
-                    post_phrase = post_phrase.replace('@.@', '.')
-                    post_phrase = post_phrase.replace('@-@', '-')
-                phrase_ids = self.bert_vocab.encode(phrase, add_special_tokens=False)
-                pre_phrase_ids = self.bert_vocab.encode(pre_phrase, add_special_tokens=False)
-                post_phrase_ids = self.bert_vocab.encode(post_phrase, add_special_tokens=False)
-                try:
-                    self._truncate_triplet(pre_phrase_ids, phrase_ids, post_phrase_ids, self.args['doc_max_length'] - 2)
-                except:
-                    continue
+                post_phrase = post_phrase.replace('<unk>', '[UNK]')
+                post_phrase = post_phrase.replace('@,@', ',')
+                post_phrase = post_phrase.replace('@.@', '.')
+                post_phrase = post_phrase.replace('@-@', '-')
+
+                phrase_ids, pre_phrase_ids, post_phrase_ids = self.bert_vocab.batch_encode_plus([
+                    phrase, pre_phrase, post_phrase], add_special_tokens=False
+                )['input_ids']
+                self._truncate_triplet(
+                    pre_phrase_ids, 
+                    phrase_ids, 
+                    post_phrase_ids, 
+                    self.args['doc_max_length'] - 2
+                )
                 if base_index == docid:
+                    # test mode: encode prefix
                     doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.cls_token_id]
                 else:
                     doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.sep_token_id]
@@ -153,27 +156,20 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
                 doc_ids.append(torch.LongTensor(doc_ids_))
                 doc_index.append((doc_s_pos, doc_e_pos))
                 pos_index.append(pos_in_ids)
-                pos_index_end.append(pos_in_ids + length_i)
             pos_index_total.append(pos_index)
-            pos_index_end_total.append(pos_index_end)
-        return ids_total, doc_ids, doc_index, pos_index_total, pos_index_end_total, vl
+        return ids_total, doc_ids, doc_index, pos_index_total, vl
 
     def save(self):
         pass
         
     def collate(self, batch):
         assert len(batch) == 1
-        ids, dids, dindex, pos_ids, pos_ids_end, vl = batch[0]
+        ids, dids, dindex, pos_ids, vl = batch[0]
         dindex_s = torch.LongTensor([i for i, _ in dindex])
         dindex_e = torch.LongTensor([i for _, i in dindex])
-        if self.args['lang'] == 'zh':
-            ids = pad_sequence(ids, batch_first=True, padding_value=self.vocab.pad_token_id)
-            dids = pad_sequence(dids, batch_first=True, padding_value=self.bert_vocab.pad_token_id)
-            ids_mask, dids_mask = generate_mask(ids), generate_mask(dids)
-        else:
-            ids = pad_sequence(ids, batch_first=True, padding_value=self.vocab.eos_token_id)
-            dids = pad_sequence(dids, batch_first=True, padding_value=self.bert_vocab.pad_token_id)
-            ids_mask, dids_mask = generate_mask(ids, pad_token_idx=self.vocab.eos_token_id), generate_mask(dids, pad_token_idx=self.bert_vocab.pad_token_id)
+        ids = pad_sequence(ids, batch_first=True, padding_value=self.vocab.eos_token_id)
+        dids = pad_sequence(dids, batch_first=True, padding_value=self.bert_vocab.pad_token_id)
+        ids_mask, dids_mask = generate_mask(ids, pad_token_idx=self.vocab.eos_token_id), generate_mask(dids, pad_token_idx=self.bert_vocab.pad_token_id)
         ids, dids, ids_mask, dids_mask, dindex_s, dindex_e = to_cuda(ids, dids, ids_mask, dids_mask, dindex_s, dindex_e)
         return {
             'ids': ids, 
@@ -184,7 +180,6 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
             'dindex_s': dindex_s,
             'dindex_e': dindex_e,
             'pos_ids': pos_ids,
-            'pos_ids_end': pos_ids_end,
         }
 
 
