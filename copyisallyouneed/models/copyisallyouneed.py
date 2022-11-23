@@ -80,7 +80,7 @@ class Copyisallyouneed(nn.Module):
         bsz, seqlen = ids.size()
         outputs = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)
         last_hidden_states = self.h_proj(outputs.hidden_states[-1])
-        loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
+        # loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
 
         ## bert
         dids, dids_mask = batch['dids'], batch['dids_mask']
@@ -131,22 +131,29 @@ class Copyisallyouneed(nn.Module):
             counting += m 
 
         #### training the query head
-        query_reps, token_labels, phrase_labels, counter = [], [], [], 0
+        query_reps, token_labels, counters, counter, cc = [], [], [], 0, 0
         for ids_, hn, pos_list, l in zip(ids, last_hidden_states, pos_index, vl):
             query_reps.append(hn[:l-1])
             token_labels.append(ids_[1:l])
-            pos_list_set = set(pos_list)
-            for i in range(l-1):
-                if i in pos_list_set:
-                    phrase_labels.append(self.vocab_size + counter)
-                    counter += 1
-                else:
-                    phrase_labels.append(-1)
+            # pos_list_set = set(pos_list)
+            # for i in range(l-1):
+            #     if i in pos_list_set:
+            #         phrase_labels.append(self.vocab_size + counter)
+            #         counter += 1
+            #     else:
+            #         phrase_labels.append(-1)
+            for i in pos_list:
+                counters.append((cc+i, self.vocab_size + counter))
+                counter += 1
+            cc += l - 1
+
         query_reps = torch.cat(query_reps)
         start_query_reps = query_reps[:, :self.model.config.hidden_size]
         end_query_reps = query_reps[:, self.model.config.hidden_size:]
         token_labels = torch.cat(token_labels)
-        phrase_labels = torch.LongTensor(phrase_labels).cuda()
+        phrase_labels = torch.ones(cc).fill_(-1).to(torch.long)
+        phrase_labels[[i for i, _ in counters]] = torch.LongTensor([j for _, j in counters])
+        phrase_labels = phrase_labels.cuda()
         
         phrase_pos_index = phrase_labels != -1
         token_pos_index = phrase_labels == -1
@@ -225,7 +232,7 @@ class Copyisallyouneed(nn.Module):
         loss_4 = (-loss_.sum(dim=-1)).sum() / valid_num
         acc_4 = logits[phrase_pos_index].max(dim=-1)[1] == end_pos
         acc_4 = acc_4.to(torch.float).mean().item()
-        return loss_0, loss_1, loss_2, loss_3, loss_4, acc_0, acc_1, acc_2, acc_3, acc_4
+        return loss_1, loss_2, loss_3, loss_4, acc_1, acc_2, acc_3, acc_4
 
     @torch.no_grad()
     def fast_rerank(self, ids, candidates, temp=1.0):
