@@ -10,7 +10,6 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
         self.file_lists = [f'{self.data_root_path}/bm25_search_result_{i}.txt' for i in range(1)]
-
         # count the number of the samples
         self.size = 0
         for path in self.file_lists:

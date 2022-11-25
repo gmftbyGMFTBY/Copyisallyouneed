@@ -23,10 +23,7 @@ class Copyisallyouneed(nn.Module):
         # model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.args['prefix_encoder_tokenizer'][self.args['lang']])
         self.vocab_size = len(self.tokenizer)
-        if self.args['lang'] == 'zh':
-            self.pad = self.tokenizer.pad_token_id
-        else:
-            self.pad = self.tokenizer.bos_token_id
+        self.pad = self.tokenizer.pad_token_id if self.args['lang'] == 'zh' else self.pad = self.tokenizer.bos_token_id
 
         self.model = GPT2LMHeadModel.from_pretrained(self.args['prefix_encoder_model'][self.args['lang']])
         self.token_embeddings = nn.Parameter(torch.randn((len(self.tokenizer), 768*2)))
@@ -37,15 +34,9 @@ class Copyisallyouneed(nn.Module):
         self.s_proj = nn.Sequential(
             nn.Dropout(p=args['dropout']),
             nn.Tanh(),
-            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size),
-            nn.Dropout(p=args['dropout']),
-            nn.Tanh(),
             nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size)
         )
         self.e_proj = nn.Sequential(
-            nn.Dropout(p=args['dropout']),
-            nn.Tanh(),
-            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size),
             nn.Dropout(p=args['dropout']),
             nn.Tanh(),
             nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size)
@@ -135,13 +126,6 @@ class Copyisallyouneed(nn.Module):
         for ids_, hn, pos_list, l in zip(ids, last_hidden_states, pos_index, vl):
             query_reps.append(hn[:l-1])
             token_labels.append(ids_[1:l])
-            # pos_list_set = set(pos_list)
-            # for i in range(l-1):
-            #     if i in pos_list_set:
-            #         phrase_labels.append(self.vocab_size + counter)
-            #         counter += 1
-            #     else:
-            #         phrase_labels.append(-1)
             for i in pos_list:
                 counters.append((cc+i, self.vocab_size + counter))
                 counter += 1
@@ -259,6 +243,4 @@ class Copyisallyouneed(nn.Module):
         confidence = torch.stack([c[:l].mean() for c, l in zip(confidence, vl)])    # [B]
         # confidence = torch.stack([c[:l].min() for c, l in zip(confidence, vl)])    # [B]
         return F.softmax(confidence/temp, dim=-1)
-
-
 

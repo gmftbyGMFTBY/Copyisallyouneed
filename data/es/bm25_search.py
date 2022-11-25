@@ -14,6 +14,7 @@ Make sure the q-q BM25 index has been built
 def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', default='wikitext103', type=str)
+    parser.add_argument('--chunk_length', default=128, type=int)
     parser.add_argument('--pool_size', default=1000, type=int)
     parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--chunk_size', default=10000, type=int)
@@ -21,9 +22,9 @@ def parser_args():
     return parser.parse_args()
 
 def train_search(args):
-    searcher = ESSearcher(f'{args["dataset"]}_phrase_copy', q_q=True)
+    searcher = ESSearcher(f'{args["dataset"]}_phrase_copy_{args["chunk_length"]}', q_q=True)
     # load base_data.txt dataset
-    with open(f'../{args["dataset"]}/base_data.txt') as f:
+    with open(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt') as f:
         datasets, keys = [], []
         for line in tqdm(f.readlines()):
             items = line.split('\t')
@@ -73,7 +74,8 @@ def test_search(args):
             datasets.append((document, index))
             keys.append(index)
     collector = []
-    chunk_path = f'../{args["dataset"]}/test_bm25_search.pkl'
+    chunk_path = f'../{args["dataset"]}/test_bm25_search_{args["chunk_length"]}.pkl'
+    print(f'[!] read data from {chunk_path}')
     pbar = tqdm(total=len(test_set))
     for idx in range(0, len(test_set), args['batch_size']):
         prefix_batch = [prefix for prefix, reference in test_set[idx:idx+args['batch_size']]]
