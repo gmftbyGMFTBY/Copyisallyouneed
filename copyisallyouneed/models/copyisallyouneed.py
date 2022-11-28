@@ -142,17 +142,22 @@ class Copyisallyouneed(nn.Module):
         phrase_pos_index = phrase_labels != -1
         token_pos_index = phrase_labels == -1
 
+        phrase_indexes = phrase_pos_index.to(torch.long).nonzero().squeeze(dim=-1)
+        assert len(phrase_indexes) == len(mask_pos)
+
         # training the token-level head
         candidate_reps = torch.cat([
             self.token_embeddings[:, :self.model.config.hidden_size], 
-            token_start_embeddings,
+            # token_start_embeddings,
+            start_embeddings
             ], dim=0
         )
         logits = torch.matmul(start_query_reps, candidate_reps.t())
         logits /= self.args['temp']
+        logits[phrase_indexes] += mask_pos_matrix
         mask = torch.zeros_like(logits)
         mask[range(len(logits)), token_labels] = 1.
-        logits[phrase_pos_index, token_start_pos] = -1e3
+        # logits[phrase_pos_index, token_start_pos] = -1e3
         loss_ = F.log_softmax(logits, dim=-1) * mask
         loss_1 = (-loss_.sum(dim=1)).mean()
         acc_1 = logits[token_pos_index].max(dim=-1)[1] == token_labels[token_pos_index]
@@ -161,14 +166,16 @@ class Copyisallyouneed(nn.Module):
         # training the token-level end
         candidate_reps = torch.cat([
             self.token_embeddings[:, self.model.config.hidden_size:], 
-            token_end_embeddings,
+            # token_end_embeddings,
+            end_embeddings,
             ], dim=0
         )
         logits = torch.matmul(end_query_reps, candidate_reps.t())
         logits /= self.args['temp']
+        logits[phrase_indexes] += mask_pos_matrix
         mask = torch.zeros_like(logits)
         mask[range(len(logits)), token_labels] = 1.
-        logits[phrase_pos_index, token_end_pos] = -1e3
+        # logits[phrase_pos_index, token_end_pos] = -1e3
         loss_ = F.log_softmax(logits, dim=-1) * mask
         loss_2 = (-loss_.sum(dim=1)).mean()
         acc_2 = logits[token_pos_index].max(dim=-1)[1] == token_labels[token_pos_index]
@@ -185,8 +192,6 @@ class Copyisallyouneed(nn.Module):
         mask[phrase_pos_index, start_pos] = 1.
         
         counting = self.vocab_size
-        phrase_indexes = phrase_pos_index.to(torch.long).nonzero().squeeze(dim=-1)
-        assert len(phrase_indexes) == len(mask_pos)
         logits[phrase_indexes] += mask_pos_matrix
         logits[phrase_pos_index, token_labels[phrase_pos_index]] = -1e4
         valid_num = phrase_pos_index.sum().item()

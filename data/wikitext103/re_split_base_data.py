@@ -7,7 +7,7 @@ def sentence_token_nltk(str):
     sent_tokenize_list = sent_tokenize(str)
     return sent_tokenize_list
 
-chunk_size = 128
+chunk_size = 512
 
 with open('base_data.txt') as f:
     datasets = ['\t'.join(line.strip().split('\t')[:-1]) for line in f.readlines()]

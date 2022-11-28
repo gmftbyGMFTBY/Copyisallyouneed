@@ -1,4 +1,5 @@
 import torch
+import pickle
 import ipdb
 from torch.utils.data import dataset, dataloader
 import argparse
@@ -40,7 +41,7 @@ def search_one_job(worker_id):
     # search
     collection = []
     pbar = tqdm(total=len(embed))
-    chunk_prefix_path = f'../{args["dataset"]}/dpr_search_chunk'
+    chunk_prefix_path = f'../{args["dataset"]}/dpr_search_chunk_{args["chunk_length"]}_{worker_id}.pkl'
     counter = 0
     for i in range(0, len(embed), args['batch_size']):
         sublabel = label[i:i+args['batch_size']]
@@ -48,12 +49,9 @@ def search_one_job(worker_id):
         result = searcher._search(subembed.numpy(), topk=args['pool_size'])
         for l, rest in zip(sublabel, result):
             collection.append((l, rest))
-        if len(collection) > args['chunk_size']:
-            pickle.dump(collection, open(f'{chunk_prefix_path}_{counter}.pkl', 'wb'))
-            counter += 1
         pbar.update(len(sublabel))
-    if len(collection) > 0:
-        pickle.dump(collection, open(f'{chunk_prefix_path}_{counter}.pkl', 'wb'))
+    pickle.dump(collection, open(f'{chunk_prefix_path}', 'wb'))
+    print(f'[!] save data into {chunk_prefix_path}')
 
 if __name__ == '__main__':
     args = vars(parser_args())

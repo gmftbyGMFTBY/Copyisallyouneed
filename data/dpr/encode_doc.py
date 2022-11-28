@@ -1,7 +1,7 @@
 from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
 import torch
+from torch.utils.data import Dataset, DataLoader
 import ipdb
-from torch.utils.data import dataset, dataloader
 import argparse
 from tqdm import tqdm
 import torch.distributed as dist

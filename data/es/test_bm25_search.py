@@ -4,6 +4,7 @@ from tqdm import tqdm
 import argparse
 import json
 import ipdb
+import nltk
 
 
 '''Generate the BM25 gray candidates:
@@ -21,49 +22,33 @@ def parser_args():
     parser.add_argument('--prefix_len', default=32, type=int)
     return parser.parse_args()
 
-def train_search(args):
-    searcher = ESSearcher(f'{args["dataset"]}_phrase_copy_{args["chunk_length"]}', q_q=True)
-    # load base_data.txt dataset
-    with open(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt') as f:
-        datasets, keys = [], []
-        for line in tqdm(f.readlines()):
-            items = line.split('\t')
-            document = '\t'.join(items[:-1])
-            index = items[-1].strip()
-            datasets.append((document, index))
-            keys.append(index)
-    collector = []
-    counter = 0
-    chunk_prefix_path = f'../{args["dataset"]}/bm25_search_chunk_{args["chunk_length"]}'
-    pbar = tqdm(total=len(keys))
-    for idx in range(0, len(keys), args['batch_size']):
-        document_batch = [doc for doc, index in datasets[idx:idx+args['batch_size']]]
-        index_batch = keys[idx:idx+args['batch_size']]
-        results = searcher.msearch(document_batch, topk=args['pool_size'])
-        for d, i, r in zip(document_batch, index_batch, results):
-            r = set(r) - set(i)
-            collector.append((i, r))
-        if len(collector) > args['chunk_size']:
-            pickle.dump(collector, open(f'{chunk_prefix_path}_{counter}.pkl', 'wb'))
-            counter += 1
-            collector = []
-        pbar.update(len(index_batch))
-    if len(collector) > 0:
-        pickle.dump(collector, open(f'{chunk_prefix_path}_{counter}.pkl', 'wb'))
+def clean_data(tokens):
+    string = ' '.join(tokens)
+    string = string.replace(' , ', ',')
+    string = string.replace(' .', '.')
+    string = string.replace(' !', '!')
+    string = string.replace(' ?', '?')
+    string = string.replace(' : ', ': ')
+    # string = string.replace(' \'', '\'')
+    return string
+
 
 def test_search(args):
-
     # load test set
     with open(f'../{args["dataset"]}/test.txt') as f:
         datasets = [line.strip() for line in tqdm(f.readlines())]
         test_set = []
         for line in datasets:
-            tokens = line.split()
-            prefix = ' '.join(tokens[:args['prefix_len']])
-            reference = ' '.join(tokens[args['prefix_len']:])
-            test_set.append((prefix, reference))
+            words = nltk.word_tokenize(line)
+            if len(words) >= 32:
+                # 32 is prefix_length and 128 is the reference length; refer to SimCTG
+                # prefix = clean_data(words[:32])
+                prefix = clean_data(words)
+                reference = clean_data(words[32:128+32])
+                test_set.append((prefix, reference))
+    print(f'[!] collect {len(test_set)} samples from the test set')
 
-    searcher = ESSearcher(f'{args["dataset"]}_phrase_copy', q_q=True)
+    searcher = ESSearcher(f'{args["dataset"]}_phrase_copy_{args["chunk_length"]}', q_q=True)
     # load base_data.txt dataset
     with open(f'../{args["dataset"]}/base_data.txt') as f:
         datasets, keys = [], []
@@ -88,5 +73,4 @@ def test_search(args):
 
 if __name__ == '__main__':
     args = vars(parser_args())
-    train_search(args)
-    # test_search(args)
+    test_search(args)

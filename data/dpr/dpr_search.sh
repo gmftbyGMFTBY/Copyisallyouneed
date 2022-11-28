@@ -6,5 +6,5 @@ CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=$
     --dataset wikitext103 \
     --batch_size 256 \
     --pool_size 64 \
-    --chunk_length 128 \
+    --chunk_length 512 \
     --chunk_size 1000000
