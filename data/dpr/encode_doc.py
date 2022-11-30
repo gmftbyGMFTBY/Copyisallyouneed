@@ -23,8 +23,10 @@ class DPRDataset(Dataset):
             for line in tqdm(f.readlines()):
                 items = line.strip().split('\t')
                 document = '\t'.join(items[:-1])
-                label = items[-1]
-                self.data.append((document, label))
+                label = items[-1].strip()
+                # only encode the first chunk
+                if label.endswith(',0'):
+                    self.data.append((document, label))
         print(f'[!] load {len(self.data)} samples') 
                 
     def __len__(self):
@@ -58,7 +60,7 @@ def inference(**args):
         text_lists.extend(labels)
         embeddings.append(embed)
         size += len(embed)
-        if size > args['cut_size']:
+        if len(embeddings) > args['cut_size']:
             embed = torch.cat(embeddings)
             torch.save((text_lists, embed), f'dpr_chunk_{args["local_rank"]}_{counter}.pt')
             counter += 1

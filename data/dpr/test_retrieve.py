@@ -27,7 +27,8 @@ def load_base_data(path):
             items = line.strip().split('\t')
             document = '\t'.join(items[:-1])
             label = items[-1].strip()
-            datasets[label] = document
+            if label.endswith(',0'):
+                datasets[label] = document
             keys.append(label)
     print(f'[!] load {len(datasets)} samples') 
     return datasets, keys 
@@ -96,6 +97,6 @@ def search_one_job(worker_id):
 if __name__ == '__main__':
     args = vars(parser_args())
     torch.cuda.set_device(args['local_rank'])
-    datasets, keys = load_base_data(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt')
+    # datasets, keys = load_base_data(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt')
     search_one_job(args['local_rank'])
 

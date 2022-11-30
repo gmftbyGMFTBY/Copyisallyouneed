@@ -196,6 +196,6 @@ if __name__ == '__main__':
     base_data = load_base_data(f'../base_data_{args["chunk_size"]}.txt')
     idx = args['worker_id']
     jobs = pickle.load(open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{idx}.pkl', 'rb'))
-    # jobs = random.sample(jobs, 100000)
+    jobs = random.sample(jobs, 10000)
     print(f'[!] collect {len(jobs)} data samples; begin to search for {idx} woker')
     main_search(args, jobs, idx, f'../{args["recall_method"]}_search_result_{args["chunk_size"]}_{idx}.txt')

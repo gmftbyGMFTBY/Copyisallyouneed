@@ -1,4 +1,5 @@
 import torch
+import random
 import pickle
 import ipdb
 from torch.utils.data import dataset, dataloader
@@ -25,7 +26,9 @@ def load_base_data(path):
             items = line.strip().split('\t')
             document = '\t'.join(items[:-1])
             label = items[-1].strip()
-            datasets[label] = document
+            # only encode the first chunk of one document
+            if label.endswith(',0'):
+                datasets[label] = document
             keys.append(label)
     print(f'[!] load {len(datasets)} samples') 
     return datasets, keys 
@@ -40,6 +43,10 @@ def search_one_job(worker_id):
 
     # search
     collection = []
+
+    # random_index = random.sample(range(len(embed)), 10000)
+    # embed = embed[random_index]
+
     pbar = tqdm(total=len(embed))
     chunk_prefix_path = f'../{args["dataset"]}/dpr_search_chunk_{args["chunk_length"]}_{worker_id}.pkl'
     counter = 0
@@ -59,5 +66,6 @@ if __name__ == '__main__':
     torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
     datasets, keys = load_base_data(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt')
+    print(f'[!] load dataset from {args["dataset"]}')
     search_one_job(args['local_rank'])
 

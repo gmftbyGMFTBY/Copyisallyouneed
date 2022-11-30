@@ -19,7 +19,7 @@ import multiprocessing
 def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bsz', default=1, type=int)
-    parser.add_argument('--chunk_size', default=1, type=int)
+    parser.add_argument('--chunk_size', default=0, type=int)
     parser.add_argument('--worker_id', default=1, type=int)
     parser.add_argument('--dataset', default='wikitext103', type=str)
     parser.add_argument('--recall_method', default='bm25', type=str)
@@ -33,7 +33,8 @@ def load_base_data(path):
             items = line.strip().split('\t')
             id = items[-1]
             chunk = '\t'.join(items[:-1]).strip()
-            dataset[id] = chunk
+            if id.endswith(',0'):
+                dataset[id] = chunk
     return dataset
 
 class SearchItem:
@@ -195,7 +196,7 @@ if __name__ == '__main__':
     args = vars(parser_args())
     base_data = load_base_data(f'../base_data_{args["chunk_size"]}.txt')
     idx = args['worker_id']
-    jobs = pickle.load(open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{idx}.pkl', 'rb'))
-    # jobs = random.sample(jobs, 100000)
+    jobs = pickle.load(open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{args["worker_id"]}.pkl', 'rb'))
+    jobs = random.sample(jobs, 10000)
     print(f'[!] collect {len(jobs)} data samples; begin to search for {idx} woker')
     main_search(args, jobs, idx, f'../{args["recall_method"]}_search_result_{args["chunk_size"]}_{idx}.txt')

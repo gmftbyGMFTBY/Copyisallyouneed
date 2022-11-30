@@ -7,13 +7,13 @@ def sentence_token_nltk(str):
     sent_tokenize_list = sent_tokenize(str)
     return sent_tokenize_list
 
-chunk_size = 512
+chunk_size = 128
 
 with open('base_data.txt') as f:
     datasets = ['\t'.join(line.strip().split('\t')[:-1]) for line in f.readlines()]
     new_datasets, idx = [], 0
     for item in tqdm(datasets):
-        item = item.replace(' @-@ ', '-').replace(' @,@ ', ', ').replace(' @.@ ', '.').replace('<unk>', '<|endoftext|>')
+        item = item.replace(' @ - @ ', '-').replace(' @-@ ', '-').replace(' @,@ ', ', ').replace(' @.@ ', '.').replace('<unk>', '<|endoftext|>')
         sentences = sentence_token_nltk(item)
         cache, counter = [], 0
         for sent in sentences:

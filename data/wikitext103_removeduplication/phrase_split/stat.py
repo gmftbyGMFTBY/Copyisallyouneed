@@ -19,8 +19,8 @@ def parser_args():
 if __name__ == "__main__":
     args = vars(parser_args())
     data = []
-    with open(f'../{args["recall_method"]}_search_result_{args["chunk_length"]}_{args["worker_id"]}.txt') as f:
-    # with open(f'../test_{args["recall_method"]}_search_result_{args["chunk_length"]}.txt') as f:
+    # with open(f'../{args["recall_method"]}_search_result_{args["chunk_length"]}_{args["worker_id"]}.txt') as f:
+    with open(f'../test_{args["recall_method"]}_search_result_{args["chunk_length"]}.txt') as f:
         for line in f.readlines():
             data.append(json.loads(line))
     print(f'[!] find {len(data)} samples')

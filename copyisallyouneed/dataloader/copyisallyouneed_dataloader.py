@@ -148,7 +148,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
                 )
                 if base_index == docid:
                     # test mode: encode prefix
-                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.cls_token_id]
+                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + [self.bert_vocab.cls_token_id]
                 else:
                     doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.sep_token_id]
                 doc_s_pos, doc_e_pos = 1 + len(pre_phrase_ids), len(pre_phrase_ids) + len(phrase_ids)

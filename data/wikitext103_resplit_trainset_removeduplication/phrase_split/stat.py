@@ -12,15 +12,15 @@ def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--worker_id', default=0, type=int)
     parser.add_argument('--chunk_length', default=128, type=int)
-    parser.add_argument('--recall_method', default='bm25', type=str)
+    parser.add_argument('--recall_method', default='dpr', type=str)
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = vars(parser_args())
     data = []
-    with open(f'../{args["recall_method"]}_search_result_{args["chunk_length"]}_{args["worker_id"]}.txt') as f:
-    # with open(f'../test_{args["recall_method"]}_search_result_{args["chunk_length"]}.txt') as f:
+    # with open(f'../{args["recall_method"]}_search_result_{args["chunk_length"]}_{args["worker_id"]}.txt') as f:
+    with open(f'../test_{args["recall_method"]}_search_result_{args["chunk_length"]}.txt') as f:
         for line in f.readlines():
             data.append(json.loads(line))
     print(f'[!] find {len(data)} samples')

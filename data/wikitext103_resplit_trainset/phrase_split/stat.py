@@ -12,7 +12,7 @@ def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--worker_id', default=0, type=int)
     parser.add_argument('--chunk_length', default=128, type=int)
-    parser.add_argument('--recall_method', default='bm25', type=str)
+    parser.add_argument('--recall_method', default='dpr', type=str)
     return parser.parse_args()
 
 
