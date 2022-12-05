@@ -27,8 +27,8 @@ def load_base_data(path):
             items = line.strip().split('\t')
             document = '\t'.join(items[:-1])
             label = items[-1].strip()
-            if label.endswith(',0'):
-                datasets[label] = document
+            # if label.endswith(',0'):
+            datasets[label] = document
             keys.append(label)
     print(f'[!] load {len(datasets)} samples') 
     return datasets, keys 
@@ -52,8 +52,8 @@ def search_one_job(worker_id):
         for line in datasets:
             words = nltk.word_tokenize(line)
             if len(words) >= 32:
-                # prefix = clean_data(words[:32])
-                prefix = clean_data(words)
+                prefix = clean_data(words[:32])
+                # prefix = clean_data(words)
                 reference = clean_data(words[32:32+128])
                 test_set.append((prefix, reference))
     print(f'[!] collect {len(test_set)} samples from the test set')

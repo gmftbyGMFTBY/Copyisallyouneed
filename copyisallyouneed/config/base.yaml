@@ -10,7 +10,6 @@ models:
 
 # ========= Global configuration ========== #
 root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed
-# data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/chinese_documents
-data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/wikitext103
+data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/wikitext103_1024
 version: 2000
 # ========= Global configuration ========== #

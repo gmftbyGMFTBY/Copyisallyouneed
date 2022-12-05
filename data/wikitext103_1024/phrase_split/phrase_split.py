@@ -4,6 +4,7 @@ import multiprocessing
 from itertools import chain
 import spacy
 import re
+import nltk
 import torch
 import subprocess
 from copy import deepcopy
@@ -16,13 +17,11 @@ import ipdb
 import multiprocessing
 
 
-'''test phrase copy for debugging'''
-
 def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bsz', default=1, type=int)
-    parser.add_argument('--worker_id', default=1, type=int)
     parser.add_argument('--chunk_size', default=1, type=int)
+    parser.add_argument('--worker_id', default=0, type=int)
     parser.add_argument('--dataset', default='wikitext103', type=str)
     parser.add_argument('--recall_method', default='bm25', type=str)
     return parser.parse_args()
@@ -47,19 +46,17 @@ class SearchItem:
         item,
         punc,
     ):
-
-        prefix, reference, candidates = item
-        self.prefix = prefix
-
-        self.text = reference
-        self.data, self.data_pos = self.text.split(), []
-
-        self.candidates = candidates
+        self.text = base_data[item[0]]
+        # self.data, self.data_pos = self.text.split(), []
+        self.data, self.data_pos = nltk.word_tokenize(self.text), []
+        self.self_doc_index = item[0]
+        self.candidates = [i for i in list(item[1]) if i != item[0]]
         self.min_length, self.max_length = min_length, max_length
         self.pointer = 0
         self.result = []
         self.punc = punc
         self.last_rest, self.current_rest = [], []
+        self.index = item[0]
         self.cache = []
     
     def move(self):
@@ -97,7 +94,6 @@ class SearchItem:
         string = ' '.join(self.cache)
         index, docid = -1, -1
 
-        # add existing prefix
         self_doc = ' '.join([i for i, j in self.result])
         self.candidates = [None] + self.candidates
 
@@ -159,8 +155,8 @@ def search_for_multiple_instance(
             searchitem = SearchItem(min_length, max_length, item, punc)
             searchitem.move()
             results_overall.append({
-                'prefix': searchitem.prefix,
                 'results': clean_data(searchitem.result),
+                'index': searchitem.index
             })
             if len(results_overall) % 1000 == 0:
                 for item in tqdm(results_overall):
@@ -195,9 +191,8 @@ def main_search(args, jobs, idx, path):
 
 if __name__ == '__main__':
     args = vars(parser_args())
-    idx = args['worker_id']
     base_data = load_base_data(f'../base_data_{args["chunk_size"]}.txt')
-    job_path = f'../test_{args["recall_method"]}_search_{args["chunk_size"]}.pkl'
-    jobs = pickle.load(open(job_path, 'rb'))
-    print(f'[!] collect {len(jobs)} data samples from {job_path}')
-    main_search(args, jobs, idx, f'../test_{args["recall_method"]}_search_result_{args["chunk_size"]}.txt')
+    idx = args['worker_id']
+    jobs = pickle.load(open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{idx}.pkl', 'rb'))
+    print(f'[!] collect {len(jobs)} data samples; begin to search for {idx} woker')
+    main_search(args, jobs, idx, f'../{args["recall_method"]}_search_result_{args["chunk_size"]}_{idx}.txt')

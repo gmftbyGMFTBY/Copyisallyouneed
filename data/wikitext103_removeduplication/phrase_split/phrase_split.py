@@ -33,8 +33,7 @@ def load_base_data(path):
             items = line.strip().split('\t')
             id = items[-1]
             chunk = '\t'.join(items[:-1]).strip()
-            if id.endswith(',0'):
-                dataset[id] = chunk
+            dataset[id] = chunk
     return dataset
 
 class SearchItem:

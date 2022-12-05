@@ -4,6 +4,7 @@ import multiprocessing
 from itertools import chain
 import spacy
 import re
+import nltk
 import torch
 import subprocess
 from copy import deepcopy
@@ -20,7 +21,7 @@ def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bsz', default=1, type=int)
     parser.add_argument('--chunk_size', default=1, type=int)
-    parser.add_argument('--worker_id', default=1, type=int)
+    parser.add_argument('--worker_id', default=0, type=int)
     parser.add_argument('--dataset', default='wikitext103', type=str)
     parser.add_argument('--recall_method', default='bm25', type=str)
     return parser.parse_args()
@@ -46,7 +47,8 @@ class SearchItem:
         punc,
     ):
         self.text = base_data[item[0]]
-        self.data, self.data_pos = self.text.split(), []
+        # self.data, self.data_pos = self.text.split(), []
+        self.data, self.data_pos = nltk.word_tokenize(self.text), []
         self.self_doc_index = item[0]
 
         self.candidates = [i for i in list(item[1]) if i != item[0]]
@@ -196,6 +198,6 @@ if __name__ == '__main__':
     base_data = load_base_data(f'../base_data_{args["chunk_size"]}.txt')
     idx = args['worker_id']
     jobs = pickle.load(open(f'../{args["recall_method"]}_search_chunk_{args["chunk_size"]}_{idx}.pkl', 'rb'))
-    # jobs = random.sample(jobs, 100000)
+    jobs = random.sample(jobs, 10000)
     print(f'[!] collect {len(jobs)} data samples; begin to search for {idx} woker')
     main_search(args, jobs, idx, f'../{args["recall_method"]}_search_result_{args["chunk_size"]}_{idx}.txt')

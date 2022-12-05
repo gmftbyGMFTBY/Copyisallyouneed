@@ -4,6 +4,7 @@ import multiprocessing
 from itertools import chain
 import spacy
 import re
+import nltk
 import torch
 import subprocess
 from copy import deepcopy
@@ -20,7 +21,7 @@ def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bsz', default=1, type=int)
     parser.add_argument('--chunk_size', default=1, type=int)
-    parser.add_argument('--worker_id', default=1, type=int)
+    parser.add_argument('--worker_id', default=0, type=int)
     parser.add_argument('--dataset', default='wikitext103', type=str)
     parser.add_argument('--recall_method', default='bm25', type=str)
     return parser.parse_args()
@@ -46,11 +47,10 @@ class SearchItem:
         punc,
     ):
         self.text = base_data[item[0]]
-        self.data, self.data_pos = self.text.split(), []
+        # self.data, self.data_pos = self.text.split(), []
+        self.data, self.data_pos = nltk.word_tokenize(self.text), []
         self.self_doc_index = item[0]
-
         self.candidates = [i for i in list(item[1]) if i != item[0]]
-        self.candidates = [self.self_doc_index] + self.candidates
         self.min_length, self.max_length = min_length, max_length
         self.pointer = 0
         self.result = []
@@ -93,24 +93,22 @@ class SearchItem:
     def search_now(self):
         string = ' '.join(self.cache)
         index, docid = -1, -1
+
+        self_doc = ' '.join([i for i, j in self.result])
+        self.candidates = [None] + self.candidates
+
         for did in self.candidates:
-            doc = base_data[did]
+            if did:
+                doc = base_data[did]
+            else:
+                doc = self_doc
             try:
                 index = doc.index(string)
             except:
                 continue
-            if did == self.self_doc_index:
-                doc_prefix_ = doc[:index].replace(' ', '')
-                cache_prefix_ = ' '.join([item[0] for item in self.result]).replace(' ', '')
-                if doc_prefix_ != cache_prefix_ and len(doc_prefix_) < len(cache_prefix_):
-                    docid = did
-                    break
-                else:
-                    docid, index = -1, -1
-            else:
-                if index != -1:
-                    docid = did
-                    break
+            if index != -1:
+                docid = did
+                break
         if docid != -1 and index != -1:
             self.save_current_rest([(docid, index)])
         else:

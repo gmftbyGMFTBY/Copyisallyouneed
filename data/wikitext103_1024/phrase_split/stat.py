@@ -20,10 +20,13 @@ if __name__ == "__main__":
     args = vars(parser_args())
     data = []
     with open(f'../{args["recall_method"]}_search_result_{args["chunk_length"]}_{args["worker_id"]}.txt') as f:
-    # with open(f'../test_{args["recall_method"]}_search_result_{args["chunk_length"]}.txt') as f:
+        error_counter = 0
         for line in f.readlines():
-            data.append(json.loads(line))
-    print(f'[!] find {len(data)} samples')
+            try:
+                data.append(json.loads(line))
+            except:
+                error_counter += 1
+    print(f'[!] find {len(data)} samples; error counter: {error_counter}')
 
     find_count, notfind_count, find_ngram, notfind_ngram= 0, 0, {}, {}
     overall_length = []

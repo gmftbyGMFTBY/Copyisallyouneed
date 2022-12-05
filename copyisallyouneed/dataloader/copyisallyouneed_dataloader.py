@@ -9,7 +9,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
-        self.file_lists = [f'{self.data_root_path}/bm25_search_result_{i}.txt' for i in range(1)]
+        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(1)]
         # count the number of the samples
         self.size = 0
         for path in self.file_lists:
@@ -31,7 +31,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
 
         # load the base_data
         base_data = {}
-        with open(f'{self.data_root_path}/base_data.txt') as f:
+        with open(f'{self.data_root_path}/base_data_128.txt') as f:
             for line in tqdm(f.readlines()):
                 line = line.strip().split('\t')
                 chunk = ' '.join(line[:-1])
@@ -78,10 +78,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
             for item_, docid in item['results'][self.last_delta:]:
                 length_s = len(item_)
                 # replace the <unk> with <|endoftext|>
-                item_ = item_.replace('<unk>', '<|endoftext|>')
-                item_ = item_.replace('@,@', ',')
-                item_ = item_.replace('@.@', '.')
-                item_ = item_.replace('@-@', '-')
+                item_ = item_.replace('< |endoftext| >', '<|endoftext|>')
                 if counter > 0:
                     item_ = ' ' + item_
 
@@ -104,7 +101,7 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
             else:
                 self.if_last_over = True
 
-            while len(docs) > 0 and counter - docs[-1][0] <= 5:
+            while len(docs) > 0 and counter - docs[-1][0] <= 3:
                 docs.pop()
 
             if len(ids) > 0:
@@ -122,33 +119,22 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
                 phrase = doc_[pos_in_doc:pos_in_doc+length_s]
                 
                 # bert-base-cased UNK replacement
-                phrase = phrase.replace('<unk>', '[UNK]')
-                phrase = phrase.replace('@,@', ',')
-                phrase = phrase.replace('@.@', '.')
-                phrase = phrase.replace('@-@', '-')
-
-                pre_phrase = pre_phrase.replace('<unk>', '[UNK]')
-                pre_phrase = pre_phrase.replace('@,@', ',')
-                pre_phrase = pre_phrase.replace('@.@', '.')
-                pre_phrase = pre_phrase.replace('@-@', '-')
-
-                post_phrase = post_phrase.replace('<unk>', '[UNK]')
-                post_phrase = post_phrase.replace('@,@', ',')
-                post_phrase = post_phrase.replace('@.@', '.')
-                post_phrase = post_phrase.replace('@-@', '-')
+                phrase = phrase.replace('< |endoftext| >', '[UNK]')
+                pre_phrase = pre_phrase.replace('< |endoftext| >', '[UNK]')
+                post_phrase = post_phrase.replace('< |endoftext| >', '[UNK]')
 
                 phrase_ids, pre_phrase_ids, post_phrase_ids = self.bert_vocab.batch_encode_plus([
-                    phrase, pre_phrase, post_phrase], add_special_tokens=False
-                )['input_ids']
+                    phrase, pre_phrase, post_phrase
+                    ], add_special_tokens=False)['input_ids']
                 self._truncate_triplet(
                     pre_phrase_ids, 
                     phrase_ids, 
                     post_phrase_ids, 
                     self.args['doc_max_length'] - 2
                 )
+                # special case for the phrase in the prefix
                 if base_index == docid:
-                    # test mode: encode prefix
-                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + [self.bert_vocab.cls_token_id]
+                    doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.cls_token_id]
                 else:
                     doc_ids_ = [self.bert_vocab.cls_token_id] + pre_phrase_ids + phrase_ids + post_phrase_ids + [self.bert_vocab.sep_token_id]
                 doc_s_pos, doc_e_pos = 1 + len(pre_phrase_ids), len(pre_phrase_ids) + len(phrase_ids)
