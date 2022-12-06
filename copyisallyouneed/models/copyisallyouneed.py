@@ -15,6 +15,7 @@ class Copyisallyouneed(nn.Module):
         )
         
         # only fine-tune the last transformer layer parameters
+        # TODO: fully fine-tuned
         # for name, param in self.phrase_encoder.named_parameters():
         #     if 'encoder.layer.11' not in name:
         #         param.requires_grad = False
@@ -23,26 +24,21 @@ class Copyisallyouneed(nn.Module):
         # model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.args['prefix_encoder_tokenizer'][self.args['lang']])
         self.vocab_size = len(self.tokenizer)
-        self.pad = self.tokenizer.pad_token_id if self.args['lang'] == 'zh' else self.pad = self.tokenizer.bos_token_id
+        self.pad = self.tokenizer.pad_token_id if self.args['lang'] == 'zh' else self.tokenizer.bos_token_id
 
         self.model = GPT2LMHeadModel.from_pretrained(self.args['prefix_encoder_model'][self.args['lang']])
-        self.token_embeddings = nn.Parameter(torch.randn((len(self.tokenizer), 768*2)))
-        # MLP for GPT2 last hidden layer
-        self.h_proj = nn.Sequential(
-            nn.Dropout(p=args['dropout']),
-            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size*2)
-        )
+        self.token_embeddings = nn.Parameter(list(self.model.lm_head.parameters())[0])
         # MLP: mapping bert phrase start representations
         self.s_proj = nn.Sequential(
             nn.Dropout(p=args['dropout']),
             nn.Tanh(),
-            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size)
+            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size//2)
         )
         # MLP: mapping bert phrase end representations
         self.e_proj = nn.Sequential(
             nn.Dropout(p=args['dropout']),
             nn.Tanh(),
-            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size)
+            nn.Linear(self.model.config.hidden_size, self.model.config.hidden_size//2)
         )
         self.gen_loss_fct = nn.CrossEntropyLoss(ignore_index=self.pad)
 
@@ -59,6 +55,7 @@ class Copyisallyouneed(nn.Module):
             hs[:, :-1, :],
             self.token_embeddings.t()
         )
+        # TODO: inner loss function remove the temperature factor
         logits /= self.args['temp']
         loss = self.gen_loss_fct(logits.view(-1, logits.size(-1)), label.reshape(-1))
         chosen_tokens = torch.max(logits, dim=-1)[1]
@@ -70,139 +67,59 @@ class Copyisallyouneed(nn.Module):
 
     def forward(self, batch):
         ## gpt2 query encoder
-        ids, ids_mask = batch['ids'], batch['ids_mask']
-        bsz, seqlen = ids.size()
-        outputs = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)
-        last_hidden_states = self.h_proj(outputs.hidden_states[-1])
-        
+        ids, ids_mask = batch['gpt2_ids'], batch['gpt2_mask']
+        outputs = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)[-1]
         # get token loss
         loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
 
         ## encode the document with the BERT encoder model
-        dids, dids_mask = batch['dids'], batch['dids_mask']
-        dindex_s, dindex_e = batch['dindex_s'], batch['dindex_e']
-        with torch.no_grad():
-            output = self.phrase_encoder(dids, dids_mask, output_hidden_states=True)['hidden_states'][-1]   # [B, S, E]
-            doc_bsz, seqlen, _ = output.size()
-            doc_vl = dids_mask.sum(dim=-1)
-
+        dids, dids_mask = batch['bert_ids'], batch['bert_mask']
+        dindex_s, dindex_e = batch['phrase_start_index'], batch['phrase_end_index']
+        phrase_to_doc = batch['phrase_to_doc']
+        phrase_num = len(phrase_to_doc)
+        output = self.phrase_encoder(dids, dids_mask, output_hidden_states=True)['hidden_states'][-1]   # [B, S, E]
         # get the document representations
-        s_rep = self.s_proj(output)
+        s_rep = self.s_proj(output)    # [B_doc, S_doc, 768//2] => [B_doc*S_doc, 768//2]
         e_rep = self.e_proj(output)    
 
-        # collect the phrase start and end representation,
-        # start position and end position (in the final similarity matrix)
-        # mask_pos is the positional mask matrix: only consider the token embeddings and phrase representations within the same document
-        # TODO: remove the for loop, replace it with matrix operations
-        start_embeddings, end_embeddings = [], []
-        start_pos, end_pos = [], []
-        mask_pos = []
-        counter = self.vocab_size
-        for idx in range(doc_bsz):
-            vl = doc_vl[idx]
-            s = dindex_s[idx]
-            e = dindex_e[idx]
-            start_embeddings.append(s_rep[idx][:vl])
-            start_pos.append(counter+s)
-            end_embeddings.append(e_rep[idx][:vl])
-            end_pos.append(counter+e)
-            counter += vl
-            mask_pos.append(vl.item())
-        start_embeddings = torch.cat(start_embeddings)
-        end_embeddings = torch.cat(end_embeddings)
-        start_pos = torch.LongTensor(start_pos).cuda()
-        end_pos = torch.LongTensor(end_pos).cuda()
-        # make the mask_pos, only the token vocabulary and phrase representations within the target documents are allowed to be trained
-        mask_pos_matrix = self.make_position_mask(mask_pos, len(start_embeddings))
+        # collect the phrase start representations and phrase end representations
+        s_rep = s_rep.reshape(-1, s_rep.size(-1))
+        e_rep = e_rep.reshape(-1, e_rep.size(-1))    # [B_doc*S_doc, 768//2]
 
-        # token-level hard negative samples
-        token_start_embeddings = s_rep[range(doc_bsz), dindex_s]
+        # collect the query representations
+        query = last_hidden_states.reshape(-1, last_hidden_states.size(-1))
+        query_start = query[:, :self.model.config.hidden_size//2]
+        query_end = query[:, self.model.config.hidden_size//2:]
 
-        # extract query represetnation
-        pos_index, vl = batch['pos_ids'], batch['vl']
-        query_reps, token_labels, where_is_phrase, cc = [], [], [], 0
-        for ids_, hn, pos_list, l in zip(ids, last_hidden_states, pos_index, vl):
-            query_reps.append(hn[:l-1])
-            token_labels.append(ids_[1:l])
-            where_is_phrase.extend([cc+i for i in pos_list])
-            cc += l - 1
-
-        query_reps = torch.cat(query_reps)
-        start_query_reps = query_reps[:, :self.model.config.hidden_size]
-        end_query_reps = query_reps[:, self.model.config.hidden_size:]
-
-        # token ground-truth labels
-        token_labels = torch.cat(token_labels)
-
-        phrase_labels = torch.ones(cc).fill_(-1).to(torch.long).cuda()
-        phrase_labels[where_is_phrase] = 1
-
-        # token and phrase position index
-        phrase_pos_index = phrase_labels != -1
-        token_pos_index = phrase_labels == -1
-
-        phrase_indexes = phrase_pos_index.to(torch.long).nonzero().squeeze(dim=-1)
-        assert len(phrase_indexes) == len(mask_pos)
-
-        # training the token-level head
+        # training the representations of the end tokens
         candidate_reps = torch.cat([
             self.token_embeddings[:, :self.model.config.hidden_size], 
-            token_start_embeddings
-            ], dim=0)
-        logits = torch.matmul(start_query_reps, candidate_reps.t())
-        logits /= self.args['temp']
-        logits[phrase_indexes] += mask_pos_matrix
-        mask = torch.zeros_like(logits)
-        mask[range(len(logits)), token_labels] = 1.
-        loss_ = F.log_softmax(logits, dim=-1) * mask
-        loss_1 = (-loss_.sum(dim=1)).mean()
-        acc_1 = logits[token_pos_index].max(dim=-1)[1] == token_labels[token_pos_index]
-        acc_1 = acc_1.to(torch.float).mean().item()
-
-        # training the token-level end
-        candidate_reps = torch.cat([
-            self.token_embeddings[:, self.model.config.hidden_size:], 
-            token_end_embeddings,
-            ], dim=0
+            s_rep], dim=0
         )
-        logits = torch.matmul(end_query_reps, candidate_reps.t())
+        logits = torch.matmul(query_start, candidate_reps.t())    # [Q, B*]   
         logits /= self.args['temp']
         logits[phrase_indexes] += mask_pos_matrix
-        mask = torch.zeros_like(logits)
-        mask[range(len(logits)), token_labels] = 1.
-        loss_ = F.log_softmax(logits, dim=-1) * mask
-        loss_2 = (-loss_.sum(dim=1)).mean()
-        acc_2 = logits[token_pos_index].max(dim=-1)[1] == token_labels[token_pos_index]
-        acc_2 = acc_2.to(torch.float).mean().item()
-
-        # training the phrase-leve head
-        candidate_reps = torch.cat([
-            self.token_embeddings[:, :self.model.config.hidden_size], 
-            start_embeddings], dim=0
-        )
-        logits = torch.matmul(start_query_reps, candidate_reps.t())    # [Q, B*]   
-        logits /= self.args['temp']
-        logits[phrase_indexes] += mask_pos_matrix
+        logits[phrase_indexes] += mask_pad_matrix
         # mask the start token of the phrase
         logits[phrase_pos_index, token_labels[phrase_pos_index]] = -1e4
         mask = torch.zeros_like(logits)
         mask[phrase_pos_index, start_pos] = 1.
         valid_num = phrase_pos_index.sum().item()
         loss_ = F.log_softmax(logits, dim=-1) * mask
-        loss_3 = (-loss_.sum(dim=-1)).sum() / valid_num
+        loss_1 = (-loss_.sum(dim=-1)).sum() / valid_num
         acc_3 = logits[phrase_pos_index].max(dim=-1)[1] == start_pos
         acc_3 = acc_3.to(torch.float).mean().item()
 
-        # training the phrase-leve tail
+        # training the representations of the start tokens
         candidate_reps = torch.cat([
             self.token_embeddings[:, self.model.config.hidden_size:], 
-            end_embeddings], dim=0
+            e_rep], dim=0
         )
-        logits = torch.matmul(end_query_reps, candidate_reps.t())    # [Q, B*]  
+        logits = torch.matmul(query_end, candidate_reps.t())    # [Q, B*]  
         logits /= self.args['temp']
         logits[phrase_indexes] += mask_pos_matrix
+        logits[phrase_indexes] += mask_pad_matrix
         logits[phrase_pos_index, token_labels[phrase_pos_index]] = -1e4
-        
         mask = torch.zeros_like(logits)
         mask[phrase_pos_index, end_pos] = 1.
         valid_num = phrase_pos_index.sum().item()
@@ -214,16 +131,12 @@ class Copyisallyouneed(nn.Module):
             loss_0,     # token loss
             loss_1,     # token-head loss
             loss_2,     # token-tail loss
-            loss_3,     # phrase-head loss
-            loss_4,     # phrase-tail loss
             acc_0,      # token accuracy
             acc_1,      # token-head accuracy
-            acc_2,      # token-tail accuracy
-            acc_3,      # phrase-head accuracy
-            acc_4       # phrase-tail accuracy
+            acc_2       # phrase-tail accuracy
         )
 
-    def make_position_mask(self, mask_pos, length)
+    def make_position_mask(self, mask_pos, length):
         mask_pos_matrix = torch.zeros(len(mask_pos), self.vocab_size + length).cuda()
         mask_pos_matrix[:, self.vocab_size:] = -1e4
         counting = self.vocab_size
@@ -231,4 +144,10 @@ class Copyisallyouneed(nn.Module):
             mask_pos_matrix[i, counting:counting+m] = 0
             counting += m 
         return mask_pos_matrix
+
+    def make_padding_mask(self, attention_mask):
+        mask_pad_matrix = attention_mask.reshape(1, -1).to(torch.float)   # [B_doc*S_doc]
+        mask_pad_matrix = torch.where(mask_pad_matrix == 1, 0.0, -1e4)
+        mask_pad_matrix = torch.cat((torch.zeros(1, self.vocab_size).cuda(), mask_pad_matrix), dim=-1)
+        return mask_pad_matrix
 

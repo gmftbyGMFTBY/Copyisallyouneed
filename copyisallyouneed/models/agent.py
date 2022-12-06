@@ -55,8 +55,8 @@ class Agent:
         self.model.train()
         with autocast():
             batch['current_step'] = current_step
-            loss_1, loss_2, loss_3, loss_4, acc_1, acc_2, acc_3, acc_4 = self.model(batch)
-            loss = loss_1 + loss_2 + loss_3 + loss_4
+            loss_0, loss_1, loss_2, loss_3, loss_4, acc_0, acc_1, acc_2, acc_3, acc_4 = self.model(batch)
+            loss = loss_0 + loss_1 + loss_2 + loss_3 + loss_4
             loss = loss / self.args['iter_to_accumulate']
         self.scaler.scale(loss).backward()
         if (current_step + 1) % self.args['iter_to_accumulate'] == 0:
@@ -69,12 +69,12 @@ class Agent:
 
         if recoder:
             recoder.add_scalar(f'train/Loss', loss.item(), current_step)
-            # recoder.add_scalar(f'train/pure_token_head_loss', loss_0.item(), current_step)
+            recoder.add_scalar(f'train/pure_token_head_loss', loss_0.item(), current_step)
             recoder.add_scalar(f'train/token_head_loss', loss_1.item(), current_step)
             recoder.add_scalar(f'train/token_tail_loss', loss_2.item(), current_step)
             recoder.add_scalar(f'train/phrase_head_loss', loss_3.item(), current_step)
             recoder.add_scalar(f'train/phrase_tail_loss', loss_4.item(), current_step)
-            # recoder.add_scalar(f'train/pure_token_acc', acc_0, current_step)
+            recoder.add_scalar(f'train/pure_token_acc', acc_0, current_step)
             recoder.add_scalar(f'train/token_head_acc', acc_1, current_step)
             recoder.add_scalar(f'train/token_tail_acc', acc_2, current_step)
             recoder.add_scalar(f'train/phrase_head_acc', acc_3, current_step)

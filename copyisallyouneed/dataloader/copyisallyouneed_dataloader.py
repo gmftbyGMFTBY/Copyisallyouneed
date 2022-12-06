@@ -113,8 +113,13 @@ class CopyisallyouneedWikitext103Dataset(Dataset):
 
             # encode the documents
             pos_index = []
+            # TODO: train and inference mismatch
             for pos_in_ids, length_s, length_i, docid, pos_in_doc in docs:
-                doc_ = self.base_data[docid]
+                if docid:
+                    doc_ = self.base_data[docid]
+                else:
+                    # TODO: sanity check for the post_phrase
+                    doc_ = self.base_data[base_index]
                 pre_phrase, post_phrase = doc_[:pos_in_doc], doc_[pos_in_doc+length_s:]
                 phrase = doc_[pos_in_doc:pos_in_doc+length_s]
                 

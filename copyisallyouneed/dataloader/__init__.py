@@ -1,4 +1,5 @@
 from .copyisallyouneed_dataloader import *
+from .copyisallyouneed_dataloader_update import *
 
 def load_dataset(args):
     if args['mode'] in ['train', 'test', 'valid']:

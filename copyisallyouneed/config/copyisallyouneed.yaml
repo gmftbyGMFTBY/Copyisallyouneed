@@ -22,11 +22,11 @@ train:
     max_len: 256
     warmup_ratio: 0.
     iter_to_accumulate: 1
-    max_doc_size: 128
+    max_doc_size: 128 
     buffer_size: 81920
     total_step: 10010
-    save_every: 10
-    temp: 0.07
+    save_every: 1000
+    temp: 1.0
     min_phrase_length: 1
     max_phrase_length: 16
     doc_max_length: 512

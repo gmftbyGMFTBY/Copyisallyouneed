@@ -330,3 +330,6 @@ def iter_count(file_name):
 def load_lines_chunk(file, num_lines):
     next_n_lines = list(islice(file, num_lines))
     return next_n_lines
+
+
+####### find the phrase start and end position in the sequence of tokens

@@ -47,8 +47,24 @@ class SearchItem:
         punc,
     ):
         self.text = base_data[item[0]]
-        # self.data, self.data_pos = self.text.split(), []
-        self.data, self.data_pos = nltk.word_tokenize(self.text), []
+        data, self.data_pos = nltk.word_tokenize(self.text), []
+        # combine the '< |endoftext| >' to '<|endoftext|>'
+        self.data = []
+        for token in data:
+            if token not in ['>', '|endoftext|']:
+                if token == '``':
+                    self.data.append('"')
+                else:
+                    self.data.append(token)
+            else:
+                if len(self.data) > 0:
+                    if self.data[-1] == '<' and token == '|endoftext|':
+                        self.data[-1] += token
+                    elif self.data[-1] == '<|endoftext|' and token == '>':
+                        self.data[-1] += token
+                    else:
+                        self.data.append(token)
+
         self.self_doc_index = item[0]
         self.candidates = [i for i in list(item[1]) if i != item[0]]
         self.min_length, self.max_length = min_length, max_length
