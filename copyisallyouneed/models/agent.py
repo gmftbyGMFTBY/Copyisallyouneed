@@ -44,7 +44,7 @@ class Agent:
             self.optimizer.load_state_dict(state_dict['optimizer_state_dict'])
             print(f'[!] load the latest model from {path}')
         else:
-            state_dict = torch.load(path, map_location=torch.device('cpu'))
+            state_dict = torch.load(path, map_location=torch.device('cpu'))['model_state_dict']
             try:
                 self.model.module.load_state_dict(state_dict)
             except:
@@ -112,4 +112,98 @@ class Agent:
             path
         )
         print(f'[!] save model into {path}')
+
+    @torch.no_grad()
+    def generate_one_sample(self, text, retriever):
+        self.model.eval()
+        ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
+        prefix_length = len(ids[0])
+        # retrieve and encode the documents
+        documents = retriever.search([text], self.args['doc_topk'])[0]
+        phrase_reps, phrase_sources = self.get_phrases(documents)
+        candidates = []
+        while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
+            ids, candidate = self.generate_one_step(ids, phrase_reps, phrase_sources)
+            candidates.append(candidate)
+        return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates
+
+    @torch.no_grad()
+    def generate_one_step(self, ids, phrase_reps, phrase_sources):
+        self.model.eval()
+        query = self.model.get_query_rep(ids)
+        candidates = self.search_from_documents(query, phrase_reps, phrase_sources, search_topk=self.args['phrase_topk'])
+        candidates = [i for i in candidates if '<|endoftext|>' not in i[0]]
+        candidates = sorted(candidates, key=lambda x:x[1], reverse=True)
+
+        candidate, _ = candidates[0]
+        sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
+        sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
+        ids = torch.cat((ids, sub_ids), dim=-1)
+        return ids, candidate
+
+    @torch.no_grad()
+    def get_phrases(self, documents):
+        self.model.eval()
+        batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
+        input_ids = batch['input_ids'].cuda()
+        mask = batch['attention_mask'].cuda()
+        vl = mask.sum(dim=-1)
+        hidden_states = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
+
+        begin_rep, end_rep = [], []
+        phrase_sources = []
+        for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
+            s_pos, e_pos = [], []
+            for i in range(1, l-self.args['left_window_size']):
+                for j in range(
+                    min(i+self.args['left_window_size'], l-1), 
+                    min(i+self.args['right_window_size'], l-1)
+                ):
+                    string = self.model.bert_tokenizer.decode(doc_id[j])
+                    
+                    if string.startswith('##'):
+                        # remove the last and append the new
+                        if s_pos and e_pos:
+                            s_pos.pop()
+                            e_pos.pop()
+                    s_pos.append(i)
+                    e_pos.append(j)
+                last_index = min(i+self.args['right_window_size'], l-1)
+                string = self.model.bert_tokenizer.decode(doc_id[last_index])
+                if string.startswith('##'):
+                    if s_pos and e_pos:
+                       s_pos.pop()
+                       e_pos.pop()
+            for s, e in zip(s_pos, e_pos):
+                string = ' ' + self.model.bert_tokenizer.decode(doc_id[s:e+1]).replace('[UNK]', '<|endoftext|>')
+                phrase_sources.append((s, e, string))
+            s_rep = doc_rep[s_pos, :]
+            e_rep = doc_rep[e_pos, :]
+            begin_rep.append(s_rep)
+            end_rep.append(e_rep)
+        begin_rep = torch.cat(begin_rep)
+        end_rep = torch.cat(end_rep)
+        phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
+        phrase_reps = torch.cat([
+            phrase_reps,
+            self.model.token_embeddings
+        ], dim=0)
+        phrase_sources.extend([
+            (
+                -1, 
+                -1, 
+                ' ' + self.model.tokenizer.decode(idx) if self.model.tokenizer.decode(idx) in ['.', ',', '!', ';', ':', '"', "'", '?', '#', '$', '%', '/', '&', '*', '(', ')', '[', ']', '{', '}', '|'] else self.model.tokenizer.decode(idx),
+            ) for idx in range(len(self.model.tokenizer))
+        ])
+        print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
+        return phrase_reps, phrase_sources
+
+    def search_from_documents(self, query, phrase_reps, phrase_source, search_topk=5):
+        dp = torch.matmul(query, phrase_reps.t()).squeeze(0)   
+        search_num = min(search_topk, len(phrase_reps))
+        dis, topk = dp.topk(search_num, dim=-1)    # [K]
+        dis = dis.tolist()
+        candidates = [(phrase_source[i][-1], round(d, 4)) for i, d in zip(topk, dis)]
+        return candidates
+
 

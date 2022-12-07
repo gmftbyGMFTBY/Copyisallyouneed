@@ -41,7 +41,7 @@ class Copyisallyouneed(nn.Module):
     def get_query_rep(self, ids):
         self.eval()
         output = self.model(input_ids=ids, output_hidden_states=True)['hidden_states'][-1][:, -1, :]
-        return self.h_proj(output)
+        return output
 
     def get_token_loss(self, ids, hs, ids_mask):
         # no pad token
@@ -77,7 +77,7 @@ class Copyisallyouneed(nn.Module):
         e_rep = e_rep.reshape(-1, e_rep.size(-1))    # [B_doc*S_doc, 768//2]
 
         # collect the query representations
-        query = last_hidden_states.reshape(-1, last_hidden_states.size(-1))
+        query = last_hidden_states[:, :-1].reshape(-1, last_hidden_states.size(-1))
         query_start = query[:, :self.model.config.hidden_size//2]
         query_end = query[:, self.model.config.hidden_size//2:]
 
@@ -89,7 +89,7 @@ class Copyisallyouneed(nn.Module):
         logits /= self.args['temp']
 
         # build the padding mask for query side
-        query_padding_mask = ids_mask.reshape(-1).to(torch.bool)
+        query_padding_mask = ids_mask[:, :-1].reshape(-1).to(torch.bool)
         
         # build the padding mask: 1 for valid and 0 for mask
         attention_mask = (dids_mask.reshape(1, -1).to(torch.bool)).to(torch.long)
@@ -99,12 +99,11 @@ class Copyisallyouneed(nn.Module):
 
         # build the position mask: 1 for valid and 0 for mask
         pos_mask = batch['pos_mask']
-        start_labels, end_labels = batch['start_labels'].reshape(-1), batch['end_labels'].reshape(-1)
-        position_mask = torch.zeros_like(logits).to(torch.long)
+        start_labels, end_labels = batch['start_labels'][:, 1:].reshape(-1), batch['end_labels'][:, 1:].reshape(-1)
+        position_mask = torch.ones_like(logits).to(torch.long)
         query_pos = start_labels > self.vocab_size
         # ignore the padding mask
         position_mask[query_pos, self.vocab_size:] = pos_mask
-        position_mask[:, :self.vocab_size] = 1
         assert padding_mask.shape == position_mask.shape
         # overall mask
         overall_mask = padding_mask * position_mask

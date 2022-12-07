@@ -94,6 +94,13 @@ def search_one_job(worker_id):
     pickle.dump(collection, open(f'{chunk_prefix_path}', 'wb'))
     print(f'[!] save data into {chunk_prefix_path}')
 
+
+class Retriever:
+
+    def __init__(self):
+        
+
+
 if __name__ == '__main__':
     args = vars(parser_args())
     torch.cuda.set_device(args['local_rank'])

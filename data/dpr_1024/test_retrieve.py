@@ -7,7 +7,7 @@ from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
 import argparse
 from tqdm import tqdm
 import torch.distributed as dist
-from utils import *
+from .utils import *
 
 
 def parser_args():
@@ -42,6 +42,28 @@ def clean_data(tokens):
     string = string.replace(' : ', ': ')
     # string = string.replace(' \'', '\'')
     return string
+
+class Retriever:
+
+    def __init__(self, path, max_length, root_dir, local_rank):
+        self.tokenizer = DPRContextEncoderTokenizer.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
+        self.model = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base").cuda()
+        self.searcher = Searcher('Flat', dimension=768, nprobe=1)
+        self.searcher.load(f'{root_dir}/dpr_faiss.ckpt', f'{root_dir}/dpr_corpus.ckpt')
+        self.searcher.move_to_gpu(device=local_rank)
+        self.max_length = max_length
+        self.base_data, _ = load_base_data(path)
+
+    def search(self, text_list, pool_size):
+        batch = self.tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt', max_length=self.max_length, truncation=True)
+        input_ids = batch['input_ids'].cuda()
+        mask = batch['attention_mask'].cuda()
+        embeddings = self.model(input_ids=input_ids, attention_mask=mask).pooler_output
+        embeddings = embeddings.cpu().numpy()
+        result, _ = self.searcher._search(embeddings, topk=pool_size)
+        result = [[self.base_data[j].replace('<|endoftext|>', '[UNK]') for j in i] for i in result]
+        return result
+    
 
 def search_one_job(worker_id):
 

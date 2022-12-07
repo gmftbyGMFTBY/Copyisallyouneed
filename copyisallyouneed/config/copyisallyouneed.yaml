@@ -22,7 +22,7 @@ train:
     max_len: 256
     warmup_ratio: 0.
     iter_to_accumulate: 1
-    max_doc_size: 64
+    max_doc_size: 32
     buffer_size: 81920
     total_step: 10010
     save_every: 1000
@@ -36,4 +36,9 @@ test:
     seed: 0
     batch_size: 1
     prefix_length_rate: 0.5
-    max_gen_len: 512
+    max_gen_len: 128
+    dropout: 0.1
+    doc_topk: 32
+    phrase_topk: 128
+    left_window_size: 0
+    right_window_size: 8

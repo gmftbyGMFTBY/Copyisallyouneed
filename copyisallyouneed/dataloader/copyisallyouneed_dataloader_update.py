@@ -10,7 +10,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         self.bert_vocab.add_tokens(['<|endoftext|>'])
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
-        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(1)]
+        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}_10000.txt' for i in range(1)]
         # count the number of the samples
         self.size = 0
         for path in self.file_lists:
