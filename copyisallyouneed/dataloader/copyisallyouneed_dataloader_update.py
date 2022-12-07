@@ -7,6 +7,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
     def __init__(self, **args):
         self.args = args
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
+        self.bert_vocab.add_tokens(['<|endoftext|>'])
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
         self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(1)]
@@ -94,8 +95,16 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                         truncate_length = None
                     else:
                         # in the prefix
-                        phrase_length = len(phrase_)
-                        doc_end_pos = self.base_data[base_index][start_pos+phrase_length:].index(phrase)
+                        try:
+                            phrase_length = len(phrase_)
+                            # minus 1 means due to the empty character before the phrase
+                            doc_end_pos = self.base_data[base_index][start_pos-1+phrase_length:].index(phrase_)
+                        except:
+                            # this phrase will not be used
+                            cache_phrase.append((phrase_, 0))
+                            delta += 1
+                            continue
+
                         # minus the special token
                         truncate_length = start_pos + phrase_length + doc_end_pos - 1
                     cache_doc.add(doc)
@@ -148,12 +157,13 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                 error_label.append(True)
                 continue
             error_label.append(False)
-            target_phrase = ' ' + self.bert_vocab.decode(doc_ids[start_index:end_index+1])
+            # target_phrase = ' ' + self.bert_vocab.decode(doc_ids[start_index:end_index+1])
             # assert phrase == target_phrase, f'{phrase} {target_phrase}'
             if truncate_length:
                 end_doc_index = end_mapping.index(truncate_length)
+                # special case with the [CLS] as the end, not the [SEP]
                 bert_batch.append(
-                    [self.bert_vocab.cls_token_id] + doc_ids[:end_doc_index] + [self.bert_vocab.sep_token_id]
+                    [self.bert_vocab.cls_token_id] + doc_ids[:end_doc_index] + [self.bert_vocab.cls_token_id]
                 )
                 phrase_to_doc.append(len(bert_batch) - 1)
             else:
@@ -166,44 +176,41 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                     phrase_to_doc.append(len(bert_batch) - 1)
             if doc_id not in phrase_doc_dict:
                 phrase_doc_dict[doc_id] = len(bert_batch) - 1
+            # +1 cause the [CLS] token is added
             phrase_start_index.append(start_index + 1)
             phrase_end_index.append(end_index + 1)
-
         max_bert_length = max([len(i) for i in bert_batch])
 
-
         # process the gpt2_batch
-        query_pos, gpt2_ids, counter = [], [], 0
+        gpt2_ids, counter, valid_counter = [], 0, 0
         start_labels, end_labels = [], []
         for text in gpt2_batch:
             phrases = [phrase for phrase, _ in text]
             is_phrase = [label for _, label in text]
             phrase_ids = self.vocab(phrases, add_special_tokens=False)['input_ids']
-            ids, end_labels_, start_labels_, query_pos_ = [], [], [], []
+            ids, end_labels_, start_labels_ = [], [], []
             for ids_, label in zip(phrase_ids, is_phrase):
+                start_ids_ = deepcopy(ids_)
+                end_ids_ = deepcopy(ids_)
                 if label and error_label[counter] is False:
-                    query_pos_.append(len(ids)-1)
                     # replace the first token with OOV token to label it
-                    bert_doc_id = phrase_to_doc[counter]
+                    bert_doc_id = phrase_to_doc[valid_counter]
                     chunk_length = max_bert_length * bert_doc_id
-                    chunk_start_delta = phrase_start_index[counter]
-                    chunk_end_delta = phrase_end_index[counter]
-                    start_ids = deepcopy(ids_)
-                    end_ids = deepcopy(ids_)
-                    start_ids[0] = len(self.vocab) + chunk_length + chunk_start_delta
-                    end_ids[0] = len(self.vocab) + chunk_length + chunk_end_delta
+                    chunk_start_delta = phrase_start_index[valid_counter]
+                    chunk_end_delta = phrase_end_index[valid_counter]
+                    start_ids_[0] = len(self.vocab) + chunk_length + chunk_start_delta
+                    end_ids_[0] = len(self.vocab) + chunk_length + chunk_end_delta
+                    valid_counter += 1
                 start_labels_.extend(start_ids_)
                 end_labels_.extend(end_ids_)
+                ids.extend(ids_)
                 if label:
                     counter += 1
-                ids.extend(ids_)
-            query_pos.append(query_pos_)
             gpt2_ids.append(ids)
             start_labels.append(start_labels_)
             end_labels.append(end_labels_)
-        max_query_length = max([len(i) for i in query_pos])
-        query_pos = [i + [-1] * (max_query_length - len(i)) for i in query_pos]
         assert counter == len(phrase_to_doc) + sum(error_label)
+        query_num = counter - sum(error_label)
             
         ######
         # prepare the batch
@@ -213,15 +220,10 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         bert_ids = pad_sequence([torch.LongTensor(i) for i in bert_batch], padding_value=self.bert_vocab.pad_token_id, batch_first=True)
         gpt2_mask = generate_mask(gpt2_ids, pad_token_idx=self.vocab.eos_token_id)
         bert_mask = generate_mask(bert_ids, pad_token_idx=self.bert_vocab.pad_token_id)
-        # query_pos = torch.LongTensor(query_pos)
-        # phrase_to_doc = torch.LongTensor(phrase_to_doc)
-        # phrase_start_index = torch.LongTensor(phrase_start_index)
-        # phrase_end_index = torch.LongTensor(phrase_end_index)
         
         ###### prepare the document mask (only for the query position)
         ###### [Q, N_p]
         total_phrase_num = bert_ids.size(0) * bert_ids.size(1)
-        # query_num = len(query_pos)
         query_num = counter - sum(error_label)
         pos_mask = torch.zeros(query_num, total_phrase_num).to(torch.long)
         chunk_size = bert_ids.size(1)
@@ -239,14 +241,13 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         
     def collate(self, batch):
         assert len(batch) == 1
-        gpt2_ids, start_labels, end_labels, bert_ids, query_pos, phrase_to_doc, phrase_start_index, phrase_end_index, gpt2_mask, bert_mask = batch
+        gpt2_ids, start_labels, end_labels, bert_ids, gpt2_mask, bert_mask, pos_mask = batch[0]
         return {
             'gpt2_ids': gpt2_ids.cuda(),
             'bert_ids': bert_ids.cuda(),
             'gpt2_mask': gpt2_mask.cuda(),
             'bert_mask': bert_mask.cuda(),
-            'phrase_to_doc': phrase_to_doc.cuda(),
-            'phrase_start_index': phrase_start_index.cuda(),
-            'phrase_end_index': phrase_end_index.cuda(),
-            'query_pos': query_pos.cuda()
+            'start_labels': start_labels.cuda(),
+            'end_labels': end_labels.cuda(),
+            'pos_mask': pos_mask.cuda()
         }

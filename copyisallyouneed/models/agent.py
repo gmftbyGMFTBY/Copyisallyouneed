@@ -55,8 +55,8 @@ class Agent:
         self.model.train()
         with autocast():
             batch['current_step'] = current_step
-            loss_0, loss_1, loss_2, loss_3, loss_4, acc_0, acc_1, acc_2, acc_3, acc_4 = self.model(batch)
-            loss = loss_0 + loss_1 + loss_2 + loss_3 + loss_4
+            loss_0, loss_1, loss_2, acc_0, phrase_start_acc, phrase_end_acc, token_start_acc, token_end_acc = self.model(batch)
+            loss = loss_0 + loss_1 + loss_2
             loss = loss / self.args['iter_to_accumulate']
         self.scaler.scale(loss).backward()
         if (current_step + 1) % self.args['iter_to_accumulate'] == 0:
@@ -70,16 +70,14 @@ class Agent:
         if recoder:
             recoder.add_scalar(f'train/Loss', loss.item(), current_step)
             recoder.add_scalar(f'train/pure_token_head_loss', loss_0.item(), current_step)
-            recoder.add_scalar(f'train/token_head_loss', loss_1.item(), current_step)
-            recoder.add_scalar(f'train/token_tail_loss', loss_2.item(), current_step)
-            recoder.add_scalar(f'train/phrase_head_loss', loss_3.item(), current_step)
-            recoder.add_scalar(f'train/phrase_tail_loss', loss_4.item(), current_step)
+            recoder.add_scalar(f'train/start_loss', loss_1.item(), current_step)
+            recoder.add_scalar(f'train/end_loss', loss_2.item(), current_step)
             recoder.add_scalar(f'train/pure_token_acc', acc_0, current_step)
-            recoder.add_scalar(f'train/token_head_acc', acc_1, current_step)
-            recoder.add_scalar(f'train/token_tail_acc', acc_2, current_step)
-            recoder.add_scalar(f'train/phrase_head_acc', acc_3, current_step)
-            recoder.add_scalar(f'train/phrase_tail_acc', acc_4, current_step)
-        pbar.set_description(f'[!] loss: {round(loss_1.item(), 4)}|{round(loss_2.item(), 4)}|{round(loss_3.item(), 4)}|{round(loss_4.item(), 4)}; acc: {round(acc_1, 4)}|{round(acc_2, 4)}|{round(acc_3, 4)}|{round(acc_4, 4)}')
+            recoder.add_scalar(f'train/token_start_acc', token_start_acc, current_step)
+            recoder.add_scalar(f'train/token_end_acc', token_end_acc, current_step)
+            recoder.add_scalar(f'train/phrase_start_acc', phrase_start_acc, current_step)
+            recoder.add_scalar(f'train/phrase_end_acc', phrase_end_acc, current_step)
+        pbar.set_description(f'[!] loss(s|e): {round(loss_1.item(), 4)}|{round(loss_2.item(), 4)}; acc: {round((token_start_acc+token_end_acc)/2, 4)}|{round((phrase_start_acc+phrase_end_acc)/2, 4)}')
         pbar.update(1)
 
     def load_latest_checkpoint(self):

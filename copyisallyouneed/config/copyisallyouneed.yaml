@@ -22,7 +22,7 @@ train:
     max_len: 256
     warmup_ratio: 0.
     iter_to_accumulate: 1
-    max_doc_size: 128 
+    max_doc_size: 64
     buffer_size: 81920
     total_step: 10010
     save_every: 1000

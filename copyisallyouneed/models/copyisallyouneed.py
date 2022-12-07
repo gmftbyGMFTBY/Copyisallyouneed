@@ -13,13 +13,8 @@ class Copyisallyouneed(nn.Module):
         self.bert_tokenizer = AutoTokenizer.from_pretrained(
             self.args['phrase_encoder_tokenizer'][self.args['lang']]
         )
-        
-        # only fine-tune the last transformer layer parameters
-        # TODO: fully fine-tuned
-        # for name, param in self.phrase_encoder.named_parameters():
-        #     if 'encoder.layer.11' not in name:
-        #         param.requires_grad = False
-        # print(f'[!] only the last BERT layer is fine-tuned')
+        self.bert_tokenizer.add_tokens(['<|endoftext|>'])
+        self.phrase_encoder.resize_token_embeddings(self.phrase_encoder.config.vocab_size+1)
         
         # model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.args['prefix_encoder_tokenizer'][self.args['lang']])
@@ -68,21 +63,16 @@ class Copyisallyouneed(nn.Module):
     def forward(self, batch):
         ## gpt2 query encoder
         ids, ids_mask = batch['gpt2_ids'], batch['gpt2_mask']
-        outputs = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)[-1]
+        last_hidden_states = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1]
         # get token loss
         loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
 
         ## encode the document with the BERT encoder model
         dids, dids_mask = batch['bert_ids'], batch['bert_mask']
-        dindex_s, dindex_e = batch['phrase_start_index'], batch['phrase_end_index']
-        phrase_to_doc = batch['phrase_to_doc']
-        phrase_num = len(phrase_to_doc)
         output = self.phrase_encoder(dids, dids_mask, output_hidden_states=True)['hidden_states'][-1]   # [B, S, E]
-        # get the document representations
-        s_rep = self.s_proj(output)    # [B_doc, S_doc, 768//2] => [B_doc*S_doc, 768//2]
-        e_rep = self.e_proj(output)    
-
         # collect the phrase start representations and phrase end representations
+        s_rep = self.s_proj(output)
+        e_rep = self.e_proj(output)    
         s_rep = s_rep.reshape(-1, s_rep.size(-1))
         e_rep = e_rep.reshape(-1, e_rep.size(-1))    # [B_doc*S_doc, 768//2]
 
@@ -91,54 +81,76 @@ class Copyisallyouneed(nn.Module):
         query_start = query[:, :self.model.config.hidden_size//2]
         query_end = query[:, self.model.config.hidden_size//2:]
 
-        # training the representations of the end tokens
-        candidate_reps = torch.cat([
-            self.token_embeddings[:, :self.model.config.hidden_size], 
-            s_rep], dim=0
-        )
-        logits = torch.matmul(query_start, candidate_reps.t())    # [Q, B*]   
-        logits /= self.args['temp']
-        logits[phrase_indexes] += mask_pos_matrix
-        logits[phrase_indexes] += mask_pad_matrix
-        # mask the start token of the phrase
-        logits[phrase_pos_index, token_labels[phrase_pos_index]] = -1e4
-        mask = torch.zeros_like(logits)
-        mask[phrase_pos_index, start_pos] = 1.
-        valid_num = phrase_pos_index.sum().item()
-        loss_ = F.log_softmax(logits, dim=-1) * mask
-        loss_1 = (-loss_.sum(dim=-1)).sum() / valid_num
-        acc_3 = logits[phrase_pos_index].max(dim=-1)[1] == start_pos
-        acc_3 = acc_3.to(torch.float).mean().item()
-
         # training the representations of the start tokens
         candidate_reps = torch.cat([
-            self.token_embeddings[:, self.model.config.hidden_size:], 
+            self.token_embeddings[:, :self.model.config.hidden_size//2], 
+            s_rep], dim=0)
+        logits = torch.matmul(query_start, candidate_reps.t())
+        logits /= self.args['temp']
+
+        # build the padding mask for query side
+        query_padding_mask = ids_mask.reshape(-1).to(torch.bool)
+        
+        # build the padding mask: 1 for valid and 0 for mask
+        attention_mask = (dids_mask.reshape(1, -1).to(torch.bool)).to(torch.long)
+        padding_mask = torch.ones_like(logits).to(torch.long)
+        # Santiy check over
+        padding_mask[:, self.vocab_size:] = attention_mask
+
+        # build the position mask: 1 for valid and 0 for mask
+        pos_mask = batch['pos_mask']
+        start_labels, end_labels = batch['start_labels'].reshape(-1), batch['end_labels'].reshape(-1)
+        position_mask = torch.zeros_like(logits).to(torch.long)
+        query_pos = start_labels > self.vocab_size
+        # ignore the padding mask
+        position_mask[query_pos, self.vocab_size:] = pos_mask
+        position_mask[:, :self.vocab_size] = 1
+        assert padding_mask.shape == position_mask.shape
+        # overall mask
+        overall_mask = padding_mask * position_mask
+
+        new_logits = torch.where(overall_mask.to(torch.bool), logits, torch.tensor(-1e4).to(torch.half).cuda())
+        mask = torch.zeros_like(new_logits)
+        mask[range(len(new_logits)), start_labels] = 1.
+        loss_ = F.log_softmax(new_logits[query_padding_mask], dim=-1) * mask[query_padding_mask]
+        loss_1 = (-loss_.sum(dim=-1)).mean()
+
+        ## split the token accuaracy and phrase accuracy
+        phrase_indexes = start_labels > self.vocab_size
+        phrase_indexes_ = phrase_indexes & query_padding_mask
+        phrase_start_acc = new_logits[phrase_indexes_].max(dim=-1)[1] == start_labels[phrase_indexes_]
+        phrase_start_acc = phrase_start_acc.to(torch.float).mean().item()
+        phrase_indexes_ = ~phrase_indexes & query_padding_mask
+        token_start_acc = new_logits[phrase_indexes_].max(dim=-1)[1] == start_labels[phrase_indexes_]
+        token_start_acc = token_start_acc.to(torch.float).mean().item()
+
+        # training the representations of the end tokens
+        candidate_reps = torch.cat([
+            self.token_embeddings[:, self.model.config.hidden_size//2:], 
             e_rep], dim=0
         )
         logits = torch.matmul(query_end, candidate_reps.t())    # [Q, B*]  
         logits /= self.args['temp']
-        logits[phrase_indexes] += mask_pos_matrix
-        logits[phrase_indexes] += mask_pad_matrix
-        logits[phrase_pos_index, token_labels[phrase_pos_index]] = -1e4
-        mask = torch.zeros_like(logits)
-        mask[phrase_pos_index, end_pos] = 1.
-        valid_num = phrase_pos_index.sum().item()
-        loss_ = F.log_softmax(logits, dim=-1) * mask
-        loss_4 = (-loss_.sum(dim=-1)).sum() / valid_num
-        acc_4 = logits[phrase_pos_index].max(dim=-1)[1] == end_pos
-        acc_4 = acc_4.to(torch.float).mean().item()
+        new_logits = torch.where(overall_mask.to(torch.bool), logits, torch.tensor(-1e4).to(torch.half).cuda())
+        mask = torch.zeros_like(new_logits)
+        mask[range(len(new_logits)), end_labels] = 1.
+        loss_ = F.log_softmax(new_logits[query_padding_mask], dim=-1) * mask[query_padding_mask]
+        loss_2 = (-loss_.sum(dim=-1)).mean()
+        # split the phrase and token accuracy
+        phrase_indexes = end_labels > self.vocab_size
+        phrase_indexes_ = phrase_indexes & query_padding_mask
+        phrase_end_acc = new_logits[phrase_indexes_].max(dim=-1)[1] == end_labels[phrase_indexes_]
+        phrase_end_acc = phrase_end_acc.to(torch.float).mean().item()
+        phrase_indexes_ = ~phrase_indexes & query_padding_mask
+        token_end_acc = new_logits[phrase_indexes_].max(dim=-1)[1] == end_labels[phrase_indexes_]
+        token_end_acc = token_end_acc.to(torch.float).mean().item()
         return (
             loss_0,     # token loss
             loss_1,     # token-head loss
             loss_2,     # token-tail loss
             acc_0,      # token accuracy
-            acc_1,      # token-head accuracy
-            acc_2       # phrase-tail accuracy
+            phrase_start_acc,
+            phrase_end_acc,
+            token_start_acc,
+            token_end_acc
         )
-
-    def make_padding_mask(self, attention_mask):
-        mask_pad_matrix = attention_mask.reshape(1, -1).to(torch.float)   # [B_doc*S_doc]
-        mask_pad_matrix = torch.where(mask_pad_matrix == 1, 0.0, -1e4)
-        mask_pad_matrix = torch.cat((torch.zeros(1, self.vocab_size).cuda(), mask_pad_matrix), dim=-1)
-        return mask_pad_matrix
-
