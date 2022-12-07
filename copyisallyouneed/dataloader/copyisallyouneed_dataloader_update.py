@@ -169,21 +169,38 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             phrase_start_index.append(start_index + 1)
             phrase_end_index.append(end_index + 1)
 
+        max_bert_length = max([len(i) for i in bert_batch])
+
+
         # process the gpt2_batch
         query_pos, gpt2_ids, counter = [], [], 0
+        start_labels, end_labels = [], []
         for text in gpt2_batch:
             phrases = [phrase for phrase, _ in text]
             is_phrase = [label for _, label in text]
             phrase_ids = self.vocab(phrases, add_special_tokens=False)['input_ids']
-            ids, query_pos_ = [], []
+            ids, end_labels_, start_labels_, query_pos_ = [], [], [], []
             for ids_, label in zip(phrase_ids, is_phrase):
                 if label and error_label[counter] is False:
                     query_pos_.append(len(ids)-1)
+                    # replace the first token with OOV token to label it
+                    bert_doc_id = phrase_to_doc[counter]
+                    chunk_length = max_bert_length * bert_doc_id
+                    chunk_start_delta = phrase_start_index[counter]
+                    chunk_end_delta = phrase_end_index[counter]
+                    start_ids = deepcopy(ids_)
+                    end_ids = deepcopy(ids_)
+                    start_ids[0] = len(self.vocab) + chunk_length + chunk_start_delta
+                    end_ids[0] = len(self.vocab) + chunk_length + chunk_end_delta
+                start_labels_.extend(start_ids_)
+                end_labels_.extend(end_ids_)
                 if label:
                     counter += 1
                 ids.extend(ids_)
             query_pos.append(query_pos_)
             gpt2_ids.append(ids)
+            start_labels.append(start_labels_)
+            end_labels.append(end_labels_)
         max_query_length = max([len(i) for i in query_pos])
         query_pos = [i + [-1] * (max_query_length - len(i)) for i in query_pos]
         assert counter == len(phrase_to_doc) + sum(error_label)
@@ -191,25 +208,38 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         ######
         # prepare the batch
         gpt2_ids = pad_sequence([torch.LongTensor(i) for i in gpt2_ids], padding_value=self.vocab.eos_token_id, batch_first=True)
+        start_labels = pad_sequence([torch.LongTensor(i) for i in start_labels], padding_value=self.vocab.eos_token_id, batch_first=True)
+        end_labels = pad_sequence([torch.LongTensor(i) for i in end_labels], padding_value=self.vocab.eos_token_id, batch_first=True)
         bert_ids = pad_sequence([torch.LongTensor(i) for i in bert_batch], padding_value=self.bert_vocab.pad_token_id, batch_first=True)
         gpt2_mask = generate_mask(gpt2_ids, pad_token_idx=self.vocab.eos_token_id)
         bert_mask = generate_mask(bert_ids, pad_token_idx=self.bert_vocab.pad_token_id)
-        query_pos = torch.LongTensor(query_pos)
-        phrase_to_doc = torch.LongTensor(phrase_to_doc)
-        phrase_start_index = torch.LongTensor(phrase_start_index)
-        phrase_end_index = torch.LongTensor(phrase_end_index)
+        # query_pos = torch.LongTensor(query_pos)
+        # phrase_to_doc = torch.LongTensor(phrase_to_doc)
+        # phrase_start_index = torch.LongTensor(phrase_start_index)
+        # phrase_end_index = torch.LongTensor(phrase_end_index)
+        
+        ###### prepare the document mask (only for the query position)
+        ###### [Q, N_p]
+        total_phrase_num = bert_ids.size(0) * bert_ids.size(1)
+        # query_num = len(query_pos)
+        query_num = counter - sum(error_label)
+        pos_mask = torch.zeros(query_num, total_phrase_num).to(torch.long)
+        chunk_size = bert_ids.size(1)
+        for i in range(query_num):
+            start_pos = phrase_to_doc[i] * chunk_size
+            end_pos = phrase_to_doc[i] * chunk_size + chunk_size 
+            pos_mask[i, start_pos:end_pos] = 1
 
-        ##### get flatten labels for each token
-        labels = gpt2_ids[:, 1:].reshape(-1)     # [B*(S-1)]
-        ipdb.set_trace()
-        return gpt2_ids, bert_ids, query_pos, phrase_to_doc, phrase_start_index, phrase_end_index, gpt2_mask, bert_mask
+        ###### get the query_pos position
+        # labels = (start_labels.reshape(-1) > len(self.vocab)).to(torch.long)
+        return gpt2_ids, start_labels, end_labels, bert_ids, gpt2_mask, bert_mask, pos_mask
 
     def save(self):
         pass
         
     def collate(self, batch):
         assert len(batch) == 1
-        gpt2_ids, bert_ids, query_pos, phrase_to_doc, phrase_start_index, phrase_end_index, gpt2_mask, bert_mask = batch
+        gpt2_ids, start_labels, end_labels, bert_ids, query_pos, phrase_to_doc, phrase_start_index, phrase_end_index, gpt2_mask, bert_mask = batch
         return {
             'gpt2_ids': gpt2_ids.cuda(),
             'bert_ids': bert_ids.cuda(),

@@ -136,15 +136,6 @@ class Copyisallyouneed(nn.Module):
             acc_2       # phrase-tail accuracy
         )
 
-    def make_position_mask(self, mask_pos, length):
-        mask_pos_matrix = torch.zeros(len(mask_pos), self.vocab_size + length).cuda()
-        mask_pos_matrix[:, self.vocab_size:] = -1e4
-        counting = self.vocab_size
-        for i, m in enumerate(mask_pos):
-            mask_pos_matrix[i, counting:counting+m] = 0
-            counting += m 
-        return mask_pos_matrix
-
     def make_padding_mask(self, attention_mask):
         mask_pad_matrix = attention_mask.reshape(1, -1).to(torch.float)   # [B_doc*S_doc]
         mask_pad_matrix = torch.where(mask_pad_matrix == 1, 0.0, -1e4)
