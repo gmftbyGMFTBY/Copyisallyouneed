@@ -13,8 +13,9 @@ class Copyisallyouneed(nn.Module):
         self.bert_tokenizer = AutoTokenizer.from_pretrained(
             self.args['phrase_encoder_tokenizer'][self.args['lang']]
         )
-        self.bert_tokenizer.add_tokens(['<|endoftext|>'])
-        self.phrase_encoder.resize_token_embeddings(self.phrase_encoder.config.vocab_size+1)
+        self.bert_tokenizer.add_tokens(['<|endoftext|>', '[PREFIX]'])
+        self.prefix_token_id = self.bert_tokenizer.convert_tokens_to_ids('[PREFIX]')
+        self.phrase_encoder.resize_token_embeddings(self.phrase_encoder.config.vocab_size+2)
         
         # model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.args['prefix_encoder_tokenizer'][self.args['lang']])

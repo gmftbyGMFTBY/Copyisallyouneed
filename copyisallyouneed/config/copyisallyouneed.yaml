@@ -38,7 +38,7 @@ test:
     prefix_length_rate: 0.5
     max_gen_len: 128
     dropout: 0.1
-    doc_topk: 32
+    doc_topk: 1024
     phrase_topk: 128
     left_window_size: 0
     right_window_size: 8

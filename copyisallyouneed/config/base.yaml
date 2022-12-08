@@ -10,5 +10,5 @@ models:
 # ========= Global configuration ========== #
 root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed
 data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/wikitext103_1024
-version: 2000
+version: 2001
 # ========= Global configuration ========== #

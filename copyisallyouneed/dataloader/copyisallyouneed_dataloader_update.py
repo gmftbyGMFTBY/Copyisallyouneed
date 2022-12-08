@@ -7,7 +7,8 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
     def __init__(self, **args):
         self.args = args
         self.bert_vocab = AutoTokenizer.from_pretrained(args['phrase_encoder_tokenizer'][args['lang']])
-        self.bert_vocab.add_tokens(['<|endoftext|>'])
+        self.bert_vocab.add_tokens(['<|endoftext|>', '[PREFIX]'])
+        self.prefix_token_id = self.bert_vocab.convert_tokens_to_ids('[PREFIX]')
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
         self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}_10000.txt' for i in range(1)]
@@ -163,7 +164,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                 end_doc_index = end_mapping.index(truncate_length)
                 # special case with the [CLS] as the end, not the [SEP]
                 bert_batch.append(
-                    [self.bert_vocab.cls_token_id] + doc_ids[:end_doc_index] + [self.bert_vocab.cls_token_id]
+                    [self.prefix_token_id] + doc_ids[:end_doc_index] + [self.bert_vocab.sep_token_id]
                 )
                 phrase_to_doc.append(len(bert_batch) - 1)
             else:

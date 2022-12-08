@@ -114,28 +114,38 @@ class Agent:
         print(f'[!] save model into {path}')
 
     @torch.no_grad()
-    def generate_one_sample(self, text, retriever):
+    def generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0):
         self.model.eval()
         ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
         prefix_length = len(ids[0])
         # retrieve and encode the documents
         documents = retriever.search([text], self.args['doc_topk'])[0]
+        # add the prefix
+        documents = [text] + documents
         phrase_reps, phrase_sources = self.get_phrases(documents)
         candidates = []
         while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
-            ids, candidate = self.generate_one_step(ids, phrase_reps, phrase_sources)
+            ids, candidate = self.generate_one_step(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
             candidates.append(candidate)
         return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates
 
     @torch.no_grad()
-    def generate_one_step(self, ids, phrase_reps, phrase_sources):
+    def generate_one_step(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
         self.model.eval()
         query = self.model.get_query_rep(ids)
         candidates = self.search_from_documents(query, phrase_reps, phrase_sources, search_topk=self.args['phrase_topk'])
         candidates = [i for i in candidates if '<|endoftext|>' not in i[0]]
         candidates = sorted(candidates, key=lambda x:x[1], reverse=True)
 
-        candidate, _ = candidates[0]
+        if decoding_method == 'greedy':
+            candidate, _ = candidates[0]
+        elif decoding_method == 'nucleus_sampling':
+            scores = torch.tensor([j for i, j in candidates])
+            scores = top_k_top_p_filtering(scores, top_k=top_k, top_p=top_p)
+            index = torch.multinomial(F.softmax(scores / temp, dim=-1), num_samples=1).item()
+            candidate, _ = candidates[index]
+        else:
+            pass
         sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
         sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
         ids = torch.cat((ids, sub_ids), dim=-1)
@@ -147,6 +157,10 @@ class Agent:
         batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
+
+        # replace the [CLS] with [PREFIX] for the prefix text (document)
+        input_ids[0, 0] = self.model.prefix_token_id
+
         vl = mask.sum(dim=-1)
         hidden_states = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
 
@@ -205,5 +219,26 @@ class Agent:
         dis = dis.tolist()
         candidates = [(phrase_source[i][-1], round(d, 4)) for i, d in zip(topk, dis)]
         return candidates
+
+
+def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):
+    assert logits.dim() == 1
+    top_k = min(top_k, logits.size(-1))
+    if top_k > 0:
+        indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
+        logits[indices_to_remove] = filter_value
+    if top_p > 0.0:
+        sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+        cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+        sorted_indices_to_remove = cumulative_probs > top_p
+        sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+        sorted_indices_to_remove[..., 0] = 0
+
+        indices_to_remove = sorted_indices[sorted_indices_to_remove]
+        logits[indices_to_remove] = filter_value
+        
+    indices_to_remove = logits < threshold
+    logits[indices_to_remove] = filter_value
+    return logits
 
 
