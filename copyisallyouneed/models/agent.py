@@ -122,12 +122,39 @@ class Agent:
         documents = retriever.search([text], self.args['doc_topk'])[0]
         # add the prefix
         documents = [text] + documents
-        phrase_reps, phrase_sources = self.get_phrases(documents)
+        phrase_reps, phrase_sources = self.get_phrases_fast(documents)
         candidates = []
         while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
-            ids, candidate = self.generate_one_step(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
+            ids, candidate = self.generate_one_step_fast(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
             candidates.append(candidate)
         return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates
+
+    @torch.no_grad()
+    def generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
+        self.model.eval()
+        query = self.model.get_query_rep(ids)
+        candidates = self.search_from_documents_fast(query, phrase_reps, phrase_sources, search_topk=self.args['phrase_topk'])
+        candidates = sorted(candidates, key=lambda x:x[1], reverse=True)
+
+        if decoding_method == 'greedy':
+            candidate, _ = candidates[0]
+        elif decoding_method == 'nucleus_sampling':
+            scores = torch.tensor([j for i, j in candidates])
+            scores = top_k_top_p_filtering(scores, top_k=top_k, top_p=top_p)
+            index = torch.multinomial(F.softmax(scores / temp, dim=-1), num_samples=1).item()
+            candidate, _ = candidates[index]
+        else:
+            pass
+
+        # get textual candidate
+        if type(candidate) == torch.Tensor:
+            candidate = ' ' + self.model.bert_tokenizer.decode(candidate).replace('[UNK]', '<|endoftext|>')
+            sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
+        else:
+            sub_ids = [candidate]
+        sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
+        ids = torch.cat((ids, sub_ids), dim=-1)
+        return ids, candidate
 
     @torch.no_grad()
     def generate_one_step(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
@@ -219,6 +246,54 @@ class Agent:
         dis = dis.tolist()
         candidates = [(phrase_source[i][-1], round(d, 4)) for i, d in zip(topk, dis)]
         return candidates
+
+    def search_from_documents_fast(self, query, phrase_reps, phrase_source, search_topk=5):
+        dp = torch.matmul(query, phrase_reps.t()).squeeze(0)   
+        search_num = min(search_topk, len(phrase_reps))
+        dis, topk = dp.topk(search_num, dim=-1)    # [K]
+        dis = dis.tolist()
+        candidates = [(phrase_source[i], round(d, 4)) for i, d in zip(topk, dis)]
+        return candidates
+
+    @torch.no_grad()
+    def get_phrases_fast(self, documents):
+        self.model.eval()
+        batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
+        input_ids = batch['input_ids'].cuda()
+        mask = batch['attention_mask'].cuda()
+
+        # replace the [CLS] with [PREFIX] for the prefix text (document)
+        input_ids[0, 0] = self.model.prefix_token_id
+
+        vl = mask.sum(dim=-1)
+        hidden_states = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
+
+        begin_rep, end_rep = [], []
+        phrase_sources = []
+        for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
+            s_pos, e_pos = [], []
+            for i in range(1, l-self.args['left_window_size']):
+                for j in range(
+                    min(i+self.args['left_window_size'], l-1), 
+                    min(i+self.args['right_window_size'], l-1)
+                ):
+                    s_pos.append(i)
+                    e_pos.append(j)
+                    phrase_sources.append(doc_id[i:j+1])
+            s_rep = doc_rep[s_pos, :]
+            e_rep = doc_rep[e_pos, :]
+            begin_rep.append(s_rep)
+            end_rep.append(e_rep)
+        begin_rep = torch.cat(begin_rep)
+        end_rep = torch.cat(end_rep)
+        phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
+        phrase_reps = torch.cat([
+            phrase_reps,
+            self.model.token_embeddings
+        ], dim=0)
+        phrase_sources.extend([idx for idx in range(len(self.model.tokenizer))])
+        print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
+        return phrase_reps, phrase_sources
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):

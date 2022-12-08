@@ -19,7 +19,7 @@ def main_generation(**args):
     config = load_config(args)
     args.update(config)
     agent = load_model(args)
-    agent.load_model('../ckpt/wikitext103/copyisallyouneed/best_2001_10000.pt')
+    agent.load_model('../ckpt/wikitext103/copyisallyouneed/best_2002_10000.pt')
     print(f'[!] init model over')
 
     torch.manual_seed(1.0)
@@ -32,7 +32,7 @@ def main_generation(**args):
             prefix, reference = ids[:32], ids[32:]
             prefix = agent.model.tokenizer.decode(prefix)
             reference = agent.model.tokenizer.decode(reference)
-            text, candidates = agent.generate_one_sample(prefix, retriever, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.2)
+            text, candidates = agent.generate_one_sample(prefix, retriever, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.)
             collection.append((prefix, reference, text, candidates))
             ipdb.set_trace()
     return collection

@@ -40,5 +40,5 @@ test:
     dropout: 0.1
     doc_topk: 1024
     phrase_topk: 128
-    left_window_size: 0
+    left_window_size: 1
     right_window_size: 8
