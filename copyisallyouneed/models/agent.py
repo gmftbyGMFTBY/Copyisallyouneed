@@ -360,6 +360,23 @@ class Agent:
         pbar.set_description(f'[!] loss: {round(loss.item(), 4)}; acc: {round(acc, 4)}')
         pbar.update(1)
 
+    @torch.no_grad()
+    def gpt2_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0):
+        # maximum 128 tokens
+        input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
+        input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
+        length = len(input_ids)
+        if decoding_method == 'nucleus_sampling':
+            output = self.model.model.generate(
+                input_ids,
+                do_sample=True,
+                max_length=length+128,
+                top_p=top_p,
+                top_k=0,
+                use_cache=True
+            )
+            string = self.model.vocab.decode(output[0, length:])
+        return string
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):
