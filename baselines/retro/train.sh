@@ -1,0 +1,2 @@
+export NCCL_IB_DISABLE=1
+CUDA_VISIBLE_DEVICES=2 python train.py

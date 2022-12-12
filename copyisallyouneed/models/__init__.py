@@ -1,6 +1,7 @@
 from .agent import Agent
 from .copyisallyouneed import Copyisallyouneed
 from .gpt2 import GPT2Baseline
+from .knnlm import KNNLMBaseline
 import ipdb
 
 def load_model(args):

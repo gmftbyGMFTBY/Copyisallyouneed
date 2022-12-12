@@ -108,6 +108,8 @@ venv.bak/
 *.json
 *.jsonl
 *.csv
+*.dat
+*.embedded
 *.embed
 *.pkl
 *.pt

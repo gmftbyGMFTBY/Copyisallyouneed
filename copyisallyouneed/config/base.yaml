@@ -9,6 +9,10 @@ models:
     gpt2:
         model_name: GPT2Baseline
         dataset_name: GPT2Dataset
+    knnlm:
+        model_name: KNNLMBaseline
+        dataset_name: KNNLMInferenceDataset
+
 
 # ========= Global configuration ========== #
 # root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed

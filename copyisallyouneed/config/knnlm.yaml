@@ -1,0 +1,21 @@
+tokenizer: 
+    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
+pretrained_model: 
+    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
+
+# test configuration
+test:
+    seed: 0
+    batch_size: 1
+    max_len: 512
+
+# infernece
+inference:
+    seed: 0
+    batch_size: 64
+    index_type: IVF100000,PQ16
+    index_nprobe: 64
+    dimension: 768
+    max_len: 256
