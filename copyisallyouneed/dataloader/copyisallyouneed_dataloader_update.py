@@ -11,7 +11,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         self.prefix_token_id = self.bert_vocab.convert_tokens_to_ids('[PREFIX]')
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
-        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}_10000.txt' for i in range(1)]
+        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(8)]
         # count the number of the samples
         self.size = 0
         for path in self.file_lists:
@@ -157,11 +157,14 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                 # wrong phrase, not consider
                 error_label.append(True)
                 continue
-            error_label.append(False)
             # target_phrase = ' ' + self.bert_vocab.decode(doc_ids[start_index:end_index+1])
             # assert phrase == target_phrase, f'{phrase} {target_phrase}'
             if truncate_length:
-                end_doc_index = end_mapping.index(truncate_length)
+                try:
+                    end_doc_index = end_mapping.index(truncate_length)
+                except:
+                    error_label.append(True)
+                    continue
                 # special case with the [CLS] as the end, not the [SEP]
                 bert_batch.append(
                     [self.prefix_token_id] + doc_ids[:end_doc_index] + [self.bert_vocab.sep_token_id]
@@ -180,6 +183,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             # +1 cause the [CLS] token is added
             phrase_start_index.append(start_index + 1)
             phrase_end_index.append(end_index + 1)
+            error_label.append(False)
         max_bert_length = max([len(i) for i in bert_batch])
 
         # process the gpt2_batch

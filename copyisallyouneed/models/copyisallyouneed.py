@@ -107,8 +107,9 @@ class Copyisallyouneed(nn.Module):
         position_mask[query_pos, self.vocab_size:] = pos_mask
         assert padding_mask.shape == position_mask.shape
         # overall mask
-        # overall_mask = padding_mask * position_mask
-        overall_mask = padding_mask
+        overall_mask = padding_mask * position_mask
+        ## remove the position mask
+        # overall_mask = padding_mask
 
         new_logits = torch.where(overall_mask.to(torch.bool), logits, torch.tensor(-1e4).to(torch.half).cuda())
         mask = torch.zeros_like(new_logits)

@@ -24,8 +24,8 @@ train:
     iter_to_accumulate: 1
     max_doc_size: 32
     buffer_size: 81920
-    total_step: 10010
-    save_every: 1000
+    total_step: 400010
+    save_every: 20000
     temp: 1.0
     min_phrase_length: 1
     max_phrase_length: 16

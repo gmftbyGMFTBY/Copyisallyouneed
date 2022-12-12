@@ -13,6 +13,8 @@ class Agent:
 
         if args['mode'] in ['train']:
             self.set_optimizer_scheduler_ddp()
+        if args['model'] == 'gpt2':
+            self.train_model = self.train_model_gpt2
         self.load_latest_checkpoint()
 
     def set_optimizer_scheduler_ddp(self):
@@ -121,12 +123,21 @@ class Agent:
         # retrieve and encode the documents
         documents = retriever.search([text], self.args['doc_topk'])[0]
         # add the prefix
-        documents = [text] + documents
+        # documents = [text] + documents
         phrase_reps, phrase_sources = self.get_phrases_fast(documents)
         candidates = []
+        encode_time = 0
         while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
             ids, candidate = self.generate_one_step_fast(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
             candidates.append(candidate)
+            # encode the document prefix
+            if len(ids[0]) > 64 and encode_time == 0:
+                prefix_phrase_reps, prefix_phrase_sources = self.get_prefix_phrases_fast([self.model.tokenizer.decode(ids[0])])
+                phrase_reps = torch.cat([phrase_reps, prefix_phrase_reps], dim=0)
+                phrase_sources.extend(prefix_phrase_sources)
+                print(f'[!] encode document prefix')
+                encode_time += 1
+
         return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates
 
     @torch.no_grad()
@@ -294,6 +305,61 @@ class Agent:
         phrase_sources.extend([idx for idx in range(len(self.model.tokenizer))])
         print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
         return phrase_reps, phrase_sources
+    
+    @torch.no_grad()
+    def get_prefix_phrases_fast(self, documents):
+        self.model.eval()
+        batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
+        input_ids = batch['input_ids'].cuda()
+        mask = batch['attention_mask'].cuda()
+
+        # replace the [CLS] with [PREFIX] for the prefix text (document)
+        input_ids[0, 0] = self.model.prefix_token_id
+
+        vl = mask.sum(dim=-1)
+        hidden_states = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
+
+        begin_rep, end_rep = [], []
+        phrase_sources = []
+        for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
+            s_pos, e_pos = [], []
+            for i in range(1, l-self.args['left_window_size']):
+                for j in range(
+                    min(i+self.args['left_window_size'], l-1), 
+                    min(i+self.args['right_window_size'], l-1)
+                ):
+                    s_pos.append(i)
+                    e_pos.append(j)
+                    phrase_sources.append(doc_id[i:j+1])
+            s_rep = doc_rep[s_pos, :]
+            e_rep = doc_rep[e_pos, :]
+            begin_rep.append(s_rep)
+            end_rep.append(e_rep)
+        begin_rep = torch.cat(begin_rep)
+        end_rep = torch.cat(end_rep)
+        phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
+        print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
+        return phrase_reps, phrase_sources
+
+    def train_model_gpt2(self, batch, recoder=None, current_step=0, pbar=None):
+        self.model.train()
+        with autocast():
+            batch['current_step'] = current_step
+            loss, acc = self.model(batch)
+        self.scaler.scale(loss).backward()
+        self.scaler.unscale_(self.optimizer)
+        clip_grad_norm_(self.model.parameters(), self.args['grad_clip'])
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
+        self.scheduler.step()
+        self.optimizer.zero_grad()
+
+        if recoder:
+            recoder.add_scalar(f'train/RunLoss', loss.item(), current_step)
+            recoder.add_scalar(f'train/Tokenacc', acc, current_step)
+        pbar.set_description(f'[!] loss: {round(loss.item(), 4)}; acc: {round(acc, 4)}')
+        pbar.update(1)
+
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):
@@ -315,5 +381,6 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), f
     indices_to_remove = logits < threshold
     logits[indices_to_remove] = filter_value
     return logits
+
 
 

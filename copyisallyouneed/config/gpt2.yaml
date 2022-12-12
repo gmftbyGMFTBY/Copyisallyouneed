@@ -1,0 +1,24 @@
+tokenizer: 
+    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
+pretrained_model: 
+    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
+
+# train configuration
+train:
+    load_param: true
+    total_step: 10010
+    save_every: 2000
+    lr: 0.00005
+    grad_clip: 0.1
+    seed: 0
+    batch_size: 64
+    max_len: 200
+    warmup_ratio: 0.
+
+# test configuration
+test:
+    seed: 0
+    batch_size: 1
+    max_len: 128
