@@ -56,8 +56,8 @@ retro = nn.DataParallel(retro)
 retro = retro.cuda()
 
 # trainer
-root_dir = '/apdcephfs/share_916081/johntianlan/RETRO'
 pbar = tqdm(range(100000))
+save_every = 10000
 for i in pbar:
     try:
         seq, retrieved = map(lambda t: t.cuda(), next(train_dl))
@@ -78,6 +78,6 @@ for i in pbar:
     optim.zero_grad()
     pbar.set_description(f'[!] loss: {round(loss.item(), 4)}')
 
-    if i % 10000 == 0:
-        torch.save(retro.state_dict(), f'{root_dir}/best_model_{i}.pt')
+    if i % save_every == 0:
+        torch.save(retro.state_dict(), f'best_model_{i}.pt')
 print(f'[!] train over')

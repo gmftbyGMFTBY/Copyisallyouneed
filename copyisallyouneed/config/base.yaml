@@ -8,10 +8,12 @@ models:
         dataset_name: CopyisallyouneedWikitext103V2Dataset
     gpt2:
         model_name: GPT2Baseline
-        dataset_name: GPT2Dataset
+        # dataset_name: GPT2Dataset
+        dataset_name: GPT2PPLDataset
     knnlm:
         model_name: KNNLMBaseline
-        dataset_name: KNNLMInferenceDataset
+        # dataset_name: KNNLMInferenceDataset
+        dataset_name: GPT2PPLDataset
 
 
 # ========= Global configuration ========== #

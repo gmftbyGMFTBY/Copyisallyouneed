@@ -110,6 +110,8 @@ venv.bak/
 *.csv
 *.dat
 *.embedded
+*.npy
+*.index
 *.embed
 *.pkl
 *.pt

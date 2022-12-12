@@ -1,5 +1,7 @@
 from header import *
-
+import sys
+sys.path.append('../data')
+from dpr_1024 import *
 
 def top_k_top_p_filtering_knnlm(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):
     assert logits.dim() == 1
@@ -36,11 +38,18 @@ class KNNLMBaseline(nn.Module):
         self.pad = self.vocab.eos_token_id
         self.unk = self.vocab.unk_token_id
         self.special_tokens = set([self.pad])
-        self.gen_loss_fct = nn.NLLLoss(ignore_index=self.vocab.pad_token_id, reduction='none')
+        self.gen_loss_fct = nn.NLLLoss(ignore_index=self.vocab.eos_token_id, reduction='none')
+
+        if self.args['mode'] == 'test':
+            self.searcher = Searcher('IVF10000,PQ16', dimension=768, nprobe=1)
+            self.searcher.load(f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_corpus.ckpt')
+            # move to the gpu and speedup the searching
+            self.searcher.move_to_gpu(0)
 
     @torch.no_grad()
-    def calculate_ppl(self, ids, ids_mask):
+    def calculate_ppl(self, batch):
         self.model.eval()
+        ids, ids_mask = batch['ids'], batch['ids_mask']
         ids, ids_mask, label = ids[:, :-1], ids_mask[:, :-1], ids[:, 1:]
         output = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)
         logits = output.logits.squeeze(0)    # [S, V]
@@ -54,7 +63,7 @@ class KNNLMBaseline(nn.Module):
             sub_seqlen = len(sub_hidden)
             sub_label = label[:, i:i+sub_chunk_size]
             sub_logits = logits[i:i+sub_chunk_size, :]
-            cands, dists = self.searcher._search_dis(
+            cands, dists = self.searcher._search(
                 sub_hidden.cpu().numpy(), 
                 topk=self.args['search_topk']
             )
@@ -163,9 +172,8 @@ class KNNLMBaseline(nn.Module):
     @torch.no_grad()
     def forward(self, batch):
         self.model.eval()
-        ids, ids_mask = batch['ids'], batch['ids_mask']
+        ids, ids_mask, vl = batch['ids'], batch['ids_mask'], batch['vl']
         output = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
-        vl = ids_mask.sum(dim=-1)
         collection_rep, collection_target = [], []
         ids = ids.tolist()
         for rep, ids_, l in zip(output, ids, vl):

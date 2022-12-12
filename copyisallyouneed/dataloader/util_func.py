@@ -111,12 +111,6 @@ def generate_mask(ids, pad_token_idx=0):
     mask = torch.ones_like(ids)
     mask[ids == pad_token_idx] = 0.
     return mask
-    # attn_mask_index = ids.nonzero().tolist()   # [PAD] IS 0
-    # attn_mask_index_x, attn_mask_index_y = [i[0] for i in attn_mask_index], [i[1] for i in attn_mask_index]
-    # attn_mask = torch.zeros_like(ids)
-    # attn_mask[attn_mask_index_x, attn_mask_index_y] = 1
-    # return attn_mask
-
 
 def to_cuda(*args):
     '''map the tensor on cuda device'''

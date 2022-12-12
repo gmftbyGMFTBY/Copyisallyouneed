@@ -8,6 +8,7 @@ class KNNLMInferenceDataset(Dataset):
         self.args = args
         self.vocab = AutoTokenizer.from_pretrained(args['tokenizer'][args['lang']])
         path = f'{args["data_root_dir"]}/base_data_128.txt'
+        self.vocab.pad_token = self.vocab.eos_token
         self.pad = self.vocab.eos_token_id
 
         self.data = []
@@ -17,24 +18,26 @@ class KNNLMInferenceDataset(Dataset):
                 line = line.strip().split('\t')
                 chunk = ' '.join(line[:-1])
                 tokens = self.vocab.encode(chunk, add_special_tokens=False)[:self.args['max_len']]
-                self.data.append(tokens)
-                counter += len(tokens)
-                if counter >= 10000000:
-                    break
+                if len(tokens) > 32:
+                    self.data.append(chunk)
+                    counter += len(tokens)
+                    if counter >= 10000000:
+                        break
         print(f'[!] collect {len(self.data)} samples and {counter} key-values')
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, i):
-        ids = self.data[i]
-        return torch.LongTensor(ids)
+        return self.data[i]
 
     def collate(self, batch):
-        ids = pad_sequence(batch, batch_first=True, padding_value=self.pad)
-        ids_mask = generate_mask(ids, pad_token_idx=self.pad)
-        ids, ids_mask = to_cuda(ids, ids_mask)
+        item = self.vocab(batch, padding=True)
+        ids = torch.LongTensor(item['input_ids']).cuda()
+        mask = torch.LongTensor(item['attention_mask']).cuda()
+        vl = mask.sum(dim=-1)
         return {
             'ids': ids, 
-            'ids_mask': ids_mask, 
+            'ids_mask': mask, 
+            'vl': vl
         }

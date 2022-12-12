@@ -33,3 +33,18 @@ class GPT2Baseline(nn.Module):
         valid_tokens = gen_acc & valid_mask
         gen_acc = valid_tokens.sum().item() / valid_mask.sum().item()
         return loss, gen_acc
+
+    @torch.no_grad()
+    def calculate_ppl(self, batch):
+        self.model.eval()
+        ids, ids_mask = batch['ids'], batch['ids_mask']
+        gen_logits = self.model(input_ids=ids, attention_mask=ids_mask).logits
+        shift_logits = gen_logits[..., :-1, :].contiguous()
+        shift_labels = ids[..., 1:].contiguous()
+        loss = self.gen_loss_fct(
+            shift_logits.view(-1, shift_logits.size(-1)), 
+            shift_labels.view(-1)
+        )
+        ppl = math.exp(loss.item())
+        return ppl
+

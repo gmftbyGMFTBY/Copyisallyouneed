@@ -394,13 +394,22 @@ class Agent:
                     f'{self.args["root_dir"]}/data/wikitext103_1024/knnlm/inference_{counter}.pt'
                 )
                 counter += 1
-                texts, embeds = [], []
+                texts, embds = [], []
         if len(texts) > 0:
             embds = torch.cat(embds, dim=0).numpy()
             torch.save(
                 (embds, texts), 
-                f'{self.args["root_dir"]}/data/wikitext103_1024/knnlm/inference_{counter.pt}'
+                f'{self.args["root_dir"]}/data/wikitext103_1024/knnlm/inference_{counter}.pt'
             )
+
+    @torch.no_grad()
+    def test_model_ppl(self, test_iter):
+        ppls = []
+        for batch in tqdm(test_iter):
+            ppl = self.model.calculate_ppl(batch)
+            ppls.append(ppl)
+        ppl = np.mean(ppls)
+        print('Perplexity:', round(ppl, 4))
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):

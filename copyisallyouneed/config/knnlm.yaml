@@ -10,6 +10,9 @@ test:
     seed: 0
     batch_size: 1
     max_len: 512
+    search_topk: 1024
+    temp: 1.0
+    lambda: 0.25
 
 # infernece
 inference:
