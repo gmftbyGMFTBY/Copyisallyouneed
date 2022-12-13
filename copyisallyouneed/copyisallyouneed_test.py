@@ -19,7 +19,7 @@ def main_generation(**args):
     config = load_config(args)
     args.update(config)
     agent = load_model(args)
-    agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/copyisallyouneed/best_2003_340000.pt')
+    agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/copyisallyouneed/best_2003_400000.pt')
     print(f'[!] init model over')
 
     torch.manual_seed(1.0)

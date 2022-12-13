@@ -42,7 +42,6 @@ def main_generation(**args):
                 'reference': reference, 
                 'text': text
             })
-            ipdb.set_trace()
     return collection
 
 if __name__ == "__main__":

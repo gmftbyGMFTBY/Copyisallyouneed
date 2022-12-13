@@ -131,7 +131,8 @@ def parse_config():
     parser = argparse.ArgumentParser()
     # model and data configuration
     parser.add_argument("--opt_model_name", type=str, default='facebook/opt-2.7b')
-    parser.add_argument("--test_path", type=str, default='gpt2_result.json')
+    # parser.add_argument("--test_path", type=str, default='gpt2_result.json')
+    parser.add_argument("--test_path", type=str, default='knnlm_result.json')
     return parser.parse_args()
 
 if __name__ == '__main__':
