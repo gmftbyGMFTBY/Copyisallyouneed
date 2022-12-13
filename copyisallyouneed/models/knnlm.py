@@ -2,30 +2,7 @@ from header import *
 import sys
 sys.path.append('../data')
 from dpr_1024 import *
-
-def top_k_top_p_filtering_knnlm(logits, top_k=0, top_p=0.0, threshold=-float('Inf'), filter_value=-np.inf):
-    assert logits.dim() == 1
-    top_k = min(top_k, logits.size(-1))
-    if top_k > 0:
-        indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
-        logits[indices_to_remove] = filter_value
-    if top_p > 0.0:
-        # special cases
-        if logits.max().item() > top_p:
-            return logits
-        sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-        # cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
-        cumulative_probs = torch.cumsum(sorted_logits, dim=-1)
-        sorted_indices_to_remove = cumulative_probs > top_p
-        sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
-        sorted_indices_to_remove[..., 0] = 0
-
-        indices_to_remove = sorted_indices[sorted_indices_to_remove]
-        logits[indices_to_remove] = filter_value
-        
-    indices_to_remove = logits < threshold
-    logits[indices_to_remove] = filter_value
-    return logits
+from .agent import top_k_top_p_filtering
 
 
 class KNNLMBaseline(nn.Module):
@@ -67,9 +44,9 @@ class KNNLMBaseline(nn.Module):
                 sub_hidden.cpu().numpy(), 
                 topk=self.args['search_topk']
             )
-            cands = torch.LongTensor([[int(i) for i in j] for j in cands]).unsqueeze(-1).cuda()    # [S, K, 1]
+            cands = torch.LongTensor([[int(i) for i in j] for j in cands]).unsqueeze(-1).cuda()
             dists = torch.tensor(dists).cuda()    # [S, K]
-            dists = F.softmax(-dists/self.args['temp'], dim=-1).unsqueeze(-1)   # [S, K, 1]
+            dists = F.softmax(-dists, dim=-1).unsqueeze(-1)   # [S, K, 1]
             knn_logits = torch.zeros(sub_seqlen, self.args['search_topk'], len(self.vocab)).cuda()   # [S, K, V]
             knn_logits.scatter_(2, cands, dists)
             knn_logits = knn_logits.sum(dim=1)    # [S, V]
@@ -81,28 +58,12 @@ class KNNLMBaseline(nn.Module):
         return math.exp(loss.item())
 
     @torch.no_grad()
-    def generate_new_logits(self, logits, hidden, topk=10, temp=100):
-        # ignored tokens
-        # ignored_tokens = set(['198', '2954', '27', '1279', '29'])
-        cands, dists = self.searcher._search_dis(
-            hidden.unsqueeze(0).cpu().numpy(), 
-            topk=topk
-        )
-        # valid_index = [False if i in ignored_tokens else True for i in cands[0]]
-        cands = [int(i) for i in cands[0]]
-        counter_num = sum([j for _, j in Counter(cands).most_common(self.args['center_topk'])])
+    def generate_new_logits(self, logits, hidden, topk=10, temp=100, ids=None):
+        cands, dists = self.searcher._search(hidden.unsqueeze(0).cpu().numpy(), topk=topk)
+        cands = torch.LongTensor([int(i) for i in cands[0]]).cuda()
         dists = torch.tensor(dists[0]).cuda()
-        # topk = sum(valid_index)
-        # if topk <= int(self.args['collapse_rate'] * self.args['search_topk']) or \
-        #     counter_num >= int(self.args['center_collapse_rate'] * self.args['search_topk']):
-        #     # the searched results collapse, donot rely on it
-        #     return F.softmax(logits, dim=-1)
-        # else:
-        cands = torch.LongTensor(cands).cuda()
-        # cands = cands[valid_index]
-        # dists = dists[valid_index]
         knn_logits = torch.zeros(topk, len(self.vocab)).cuda()    # [K, V]
-        knn_logits[range(topk), cands] = F.softmax(-dists/self.args['temp'], dim=-1)
+        knn_logits[range(topk), cands] = F.softmax(-dists, dim=-1)
         knn_logits = knn_logits.sum(dim=0)    # [V]
         new_logits = self.args['lambda'] * knn_logits + (1 - self.args['lambda']) * F.softmax(logits, dim=-1)
         return new_logits
@@ -135,37 +96,26 @@ class KNNLMBaseline(nn.Module):
         return string
 
     @torch.no_grad()
-    def nucleus_sampling(self, batch):
-        ids = batch['ids']
+    def nucleus_sampling(self, ids, max_length, top_p):
         generated = []
-        while True:
+        past_key_values = None
+        for _ in range(max_length):
             output = self.model(
                 input_ids=ids,
                 attention_mask=torch.ones_like(ids),
-                output_hidden_states=True
+                output_hidden_states=True,
+                use_cache=True,
+                past_key_values=past_key_values
             )
-            hidden = output['hidden_states'][-1][-1, -1, :]    # [H]
-            next_token_logits = output['logits'][-1, -1, :]    # [V]
-            next_token_logits = self.generate_new_logits(next_token_logits, hidden, topk=self.args['search_topk'])
-            filtered_logits = top_k_top_p_filtering_knnlm(
-                next_token_logits, 
-                top_k=self.topk, 
-                top_p=self.topp
-            )
-            # ignore some tokens: \n, unk, <, >, eos_token
-            # ignored_tokens = [198, 2954, 27, 1279, 29, self.unk]
-            # filtered_logits[ignored_tokens] = -np.inf
-            filtered_logits[self.unk] = -np.inf
-            next_token = torch.multinomial(
-                F.softmax(filtered_logits*2, dim=-1),
-                num_samples=1,
-            )
-            if len(generated) > self.test_max_len:
-                break
-            generated.append(next_token.item())
-            # reconstruct the ids and ids_mask
-            ids = torch.cat((ids, next_token.unsqueeze(0)), dim=1)    # [1, S+1]
-            # ids = ids[:, -self.test_max_ctx_len:]
+            past_key_values = output['past_key_values']
+            hidden = output['hidden_states'][-1][-1, -1, :]
+            next_token_logits = output['logits'][-1, -1, :]
+            next_token_logits = self.generate_new_logits(next_token_logits, hidden, topk=self.args['search_topk'], ids=ids)
+            filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=0, top_p=top_p, filter_value=0)
+            filtered_logits[self.unk] = 0
+            # no softmax for nucleus sampling
+            ids = torch.multinomial(filtered_logits, num_samples=1).reshape(1, 1)
+            generated.append(ids.item())
         string = self.vocab.decode(generated)
         return string
 
@@ -180,10 +130,7 @@ class KNNLMBaseline(nn.Module):
             collection_rep.append(rep[:l-1, :])
             collection_target.extend(ids_[1:l])
         collection_rep = torch.cat(collection_rep).cpu()
-        try:
-            assert len(collection_rep) == len(collection_target)
-        except:
-            ipdb.set_trace()
+        assert len(collection_rep) == len(collection_target)
         collection_target = [str(i) for i in collection_target]
         return collection_rep, collection_target
 

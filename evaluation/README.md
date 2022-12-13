@@ -7,4 +7,4 @@
 | gpt2 (nucleus sampling p=0.95)  | 79.81 | 0.2787 | 0.2467 | 0.2328 | 0.4169 | -3.01 |
 | knnlm (nucleus sampling p=0.95) | | | | | | |
 | retro (nucleus sampling p=0.95) | | | | | | |
-| copyisallyouneed (nucleus sampling p=0.95) | | | | | | |
+| copyisallyouneed (nucleus sampling p=0.95) | 79.44 | 0.0787 | 0.0299 | 0.0146 | 0.8807 | -2.94 |

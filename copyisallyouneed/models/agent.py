@@ -379,6 +379,20 @@ class Agent:
         return string
 
     @torch.no_grad()
+    def knnlm_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0):
+        # maximum 128 tokens
+        input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
+        input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
+        length = len(input_ids)
+        if decoding_method == 'nucleus_sampling':
+            string = self.model.nucleus_sampling(
+                input_ids,
+                max_length=128,
+                top_p=top_p,
+            )
+        return string
+
+    @torch.no_grad()
     def inference_knnlm(self, inf_iter, size=500000):
         self.model.eval()
         embds, texts = [], []
@@ -403,11 +417,15 @@ class Agent:
             )
 
     @torch.no_grad()
-    def test_model_ppl(self, test_iter):
+    def test_model_ppl(self, test_iter, max_counter=100):
         ppls = []
+        counter = 0
         for batch in tqdm(test_iter):
             ppl = self.model.calculate_ppl(batch)
             ppls.append(ppl)
+            counter += 1
+            if counter >= max_counter:
+                break
         ppl = np.mean(ppls)
         print('Perplexity:', round(ppl, 4))
 

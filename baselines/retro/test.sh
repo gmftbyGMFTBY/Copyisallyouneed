@@ -1,3 +1,3 @@
 #!/bin/bash
 
-CUDA_VISIVLE_DEVICES=2 python test.py
+CUDA_VISIBLE_DEVICES=2 python test.py

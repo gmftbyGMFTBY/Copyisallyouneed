@@ -30,8 +30,8 @@ def load_result(path):
 
 if __name__ == "__main__":
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
-    # dataset = load_result('copyisallyouneed_result.json')
-    dataset = load_result('gpt2_result.json')
+    dataset = load_result('copyisallyouneed_result.json')
+    # dataset = load_result('gpt2_result.json')
     out = mauve.compute_mauve(
         p_text=[i[0] for i in dataset], 
         q_text=[i[1] for i in dataset], 
