@@ -1,6 +1,8 @@
 import json
 import random
 
+random.seed(0)
+
 with open('copyisallyouneed_result.json') as f:
     copyisallyouneed_result = json.load(f)
 with open('gpt2_result.json') as f:
@@ -14,7 +16,7 @@ for a, b, label in zip(copyisallyouneed_result, gpt2_result, labels):
     if label == 0:
         results.append({'prefix': a['prefix'], 'method_0': a['text'], 'method_1': b['text'], 'which one is better': None})
     else:
-        results.append({'prefix': a['prefix'], 'method_1': a['text'], 'method_0': b['text'], 'which one is better': None})
+        results.append({'prefix': a['prefix'], 'method_0': b['text'], 'method_1': a['text'], 'which one is better': None})
 
 max_num = 100
 index = random.sample(range(len(results)), max_num)

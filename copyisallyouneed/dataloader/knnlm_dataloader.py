@@ -14,15 +14,17 @@ class KNNLMInferenceDataset(Dataset):
         self.data = []
         counter = 0
         with open(path) as f:
-            for line in tqdm(f.readlines()):
+            pbar = tqdm(f.readlines())
+            for line in pbar: 
                 line = line.strip().split('\t')
                 chunk = ' '.join(line[:-1])
                 tokens = self.vocab.encode(chunk, add_special_tokens=False)[:self.args['max_len']]
                 if len(tokens) > 32:
                     self.data.append(chunk)
                     counter += len(tokens)
-                    if counter >= 10000000:
+                    if counter >= 103000000:
                         break
+                pbar.set_description(f'[!] collect key-values: {counter}')
         print(f'[!] collect {len(self.data)} samples and {counter} key-values')
 
     def __len__(self):

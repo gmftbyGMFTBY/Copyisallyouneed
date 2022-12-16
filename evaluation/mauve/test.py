@@ -31,12 +31,17 @@ def load_result(path):
 if __name__ == "__main__":
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
     # dataset = load_result('copyisallyouneed_result.json')
-    dataset = load_result('knnlm_result.json')
+    # dataset = load_result('knnlm_result.json')
     # dataset = load_result('gpt2_result.json')
+    # dataset = load_result('gpt2_result_greedy.json')
+    # dataset = load_result('copyisallyouneed_result_greedy.json')
+    # dataset = load_result('retro_result_greedy.json')
+    # dataset = load_result('retro_result_sampling.json')
+    dataset = load_result('neurlab_gpt2_result_greedy.json')
     out = mauve.compute_mauve(
         p_text=[i[0] for i in dataset], 
         q_text=[i[1] for i in dataset], 
-        device_id=2, 
+        device_id=7, 
         max_text_length=512, 
         verbose=False, 
         mauve_scaling_factor=1.0, 

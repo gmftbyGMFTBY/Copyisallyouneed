@@ -10,7 +10,8 @@ from retro_pytorch.training import top_p
 from transformers import AutoTokenizer
 
 tokenizer = AutoTokenizer.from_pretrained('bert-base-cased')
-decoding_method = 'sampling'
+# decoding_method = 'sampling'
+decoding_method = 'greedy'
 
 # instantiate RETRO, fit it into the TrainingWrapper with correct settings
 
@@ -45,7 +46,7 @@ wrapper = TrainingWrapper(
 
 # packup the model with dataparallel
 # load the model checkpoint
-model_path = 'best_model_30000.pt'
+model_path = 'best_model_100000.pt'
 parameters = torch.load(model_path)
 new_data = OrderedDict()
 for key, value in parameters.items():
@@ -87,5 +88,5 @@ with open(f'../../data/wikitext103_1024/test.txt') as f:
             'text': text, 
         })
 
-with open('retro_result.json', 'w') as f:
+with open(f'retro_result_{decoding_method}.json', 'w') as f:
     json.dump(collection, f, indent=4)

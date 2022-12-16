@@ -56,7 +56,7 @@ retro = nn.DataParallel(retro)
 retro = retro.cuda()
 
 # trainer
-pbar = tqdm(range(100000))
+pbar = tqdm(range(100010))
 save_every = 10000
 for i in pbar:
     try:

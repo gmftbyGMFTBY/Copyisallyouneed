@@ -12,8 +12,8 @@ models:
         dataset_name: GPT2PPLDataset
     knnlm:
         model_name: KNNLMBaseline
-        # dataset_name: KNNLMInferenceDataset
-        dataset_name: GPT2PPLDataset
+        dataset_name: KNNLMInferenceDataset
+        # dataset_name: GPT2PPLDataset
 
 
 # ========= Global configuration ========== #

@@ -18,7 +18,7 @@ test:
 inference:
     seed: 0
     batch_size: 64
-    index_type: IVF100000,PQ16
+    index_type: IVF500000,PQ16
     index_nprobe: 64
     dimension: 768
     max_len: 256

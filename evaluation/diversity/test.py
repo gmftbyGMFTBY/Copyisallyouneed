@@ -40,8 +40,14 @@ def distinct_sentence_level_char(sentence, n=1):
 if __name__ == "__main__":
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
     # dataset = load_result('copyisallyouneed_result.json')
-    dataset = load_result('knnlm_result.json')
+    # dataset = load_result('knnlm_result.json')
     # dataset = load_result('gpt2_result.json')
+    # dataset = load_result('gpt2_result_greedy.json')
+    # dataset = load_result('copyisallyouneed_result_greedy.json')
+    # dataset = load_result('retro_result_greedy.json')
+    # dataset = load_result('retro_result_sampling.json')
+    dataset = load_result('neurlab_gpt2_result_greedy.json')
+    # dataset = load_result('neurlab_gpt2_result_nucleus_sampling.json')
     n = [2, 3, 4]
     nlp = spacy.load('en_core_web_sm')
     func = distinct_sentence_level_char

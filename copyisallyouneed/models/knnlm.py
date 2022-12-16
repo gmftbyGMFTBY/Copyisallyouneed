@@ -134,4 +134,26 @@ class KNNLMBaseline(nn.Module):
         collection_target = [str(i) for i in collection_target]
         return collection_rep, collection_target
 
+    @torch.no_grad()
+    def greedy_search(self, ids, max_length):
+        generated = []
+        past_key_values = None
+        for _ in range(max_length):
+            output = self.model(
+                input_ids=ids,
+                attention_mask=torch.ones_like(ids),
+                output_hidden_states=True,
+                use_cache=True,
+                past_key_values=past_key_values
+            )
+            past_key_values = output['past_key_values']
+            hidden = output['hidden_states'][-1][-1, -1, :]
+            next_token_logits = output['logits'][-1, -1, :]
+            next_token_logits = self.generate_new_logits(next_token_logits, hidden, topk=self.args['search_topk'], ids=ids)
+            next_token_logits[self.unk] = -np.inf
+            ids = torch.argmax(next_token_logits, dim=-1).reshape(1, 1)
+            generated.append(ids.item())
+        string = self.vocab.decode(generated)
+        return string
+
 

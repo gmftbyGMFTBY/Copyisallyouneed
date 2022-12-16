@@ -10,6 +10,7 @@ def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
     parser.add_argument('--dataset', default='ecommerce', type=str)
     parser.add_argument('--model', type=str)
+    parser.add_argument('--decoding_method', type=str)
     parser.add_argument('--recall_topk', type=int, default=20)
     return parser.parse_args()
 
@@ -18,7 +19,8 @@ def main_generation(**args):
     config = load_config(args)
     args.update(config)
     agent = load_model(args)
-    agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
+    # use neurlab gpt2 wikitext103 fine-tuned version
+    # agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
     print(f'[!] init model over')
 
     torch.manual_seed(1.0)
@@ -38,7 +40,7 @@ def main_generation(**args):
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
         for prefix, reference in tqdm(texts):
-            text = agent.gpt2_generation(prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.)
+            text = agent.gpt2_generation(prefix, decoding_method=args['decoding_method'], top_k=0, top_p=0.95, temp=1.)
             collection.append({
                 'prefix': prefix, 
                 'reference': reference, 
@@ -49,5 +51,5 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open('gpt2_result.json', 'w') as f:
+    with open(f'neurlab_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
         json.dump(result, f, indent=4)

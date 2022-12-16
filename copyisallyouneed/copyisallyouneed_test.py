@@ -10,6 +10,7 @@ def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
     parser.add_argument('--dataset', default='ecommerce', type=str)
     parser.add_argument('--model', type=str)
+    parser.add_argument('--decoding_method', type=str)
     parser.add_argument('--recall_topk', type=int, default=20)
     return parser.parse_args()
 
@@ -38,17 +39,18 @@ def main_generation(**args):
                 texts.append((prefix, reference))
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
         for prefix, reference in tqdm(texts):
-            text, candidates = agent.generate_one_sample(prefix, retriever, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.)
+            text, candidates = agent.generate_one_sample(prefix, retriever, decoding_method=args["decoding_method"], top_k=0, top_p=0.95, temp=1.)
             collection.append({
                 'prefix': prefix, 
                 'reference': reference, 
                 'text': text, 
                 'phrases': candidates
             })
+            ipdb.set_trace()
     return collection
 
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open('copyisallyouneed_result.json', 'w') as f:
+    with open(f'copyisallyouneed_result_{args["decoding_method"]}.json', 'w') as f:
         json.dump(result, f, indent=4)

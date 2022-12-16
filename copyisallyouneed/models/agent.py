@@ -15,7 +15,7 @@ class Agent:
             self.set_optimizer_scheduler_ddp()
         if args['model'] == 'gpt2':
             self.train_model = self.train_model_gpt2
-        self.load_latest_checkpoint()
+        # self.load_latest_checkpoint()
 
     def set_optimizer_scheduler_ddp(self):
         if self.args['mode'] in ['train']:
@@ -365,7 +365,7 @@ class Agent:
         # maximum 128 tokens
         input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
         input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
-        length = len(input_ids)
+        length = len(input_ids[0])
         if decoding_method == 'nucleus_sampling':
             output = self.model.model.generate(
                 input_ids,
@@ -375,7 +375,13 @@ class Agent:
                 top_k=0,
                 use_cache=True
             )
-            string = self.model.vocab.decode(output[0, length:])
+        else:
+            output = self.model.model.generate(
+                input_ids,
+                max_length=length+128,
+                use_cache=True
+            )
+        string = self.model.vocab.decode(output[0, length:])
         return string
 
     @torch.no_grad()
@@ -383,12 +389,17 @@ class Agent:
         # maximum 128 tokens
         input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
         input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
-        length = len(input_ids)
+        length = len(input_ids[0])
         if decoding_method == 'nucleus_sampling':
             string = self.model.nucleus_sampling(
                 input_ids,
                 max_length=128,
                 top_p=top_p,
+            )
+        elif decoding_method == 'greedy':
+            string = self.model.greedy_search(
+                input_ids,
+                max_length=128,
             )
         return string
 
@@ -417,7 +428,7 @@ class Agent:
             )
 
     @torch.no_grad()
-    def test_model_ppl(self, test_iter, max_counter=100):
+    def test_model_ppl(self, test_iter, max_counter=10000):
         ppls = []
         counter = 0
         for batch in tqdm(test_iter):

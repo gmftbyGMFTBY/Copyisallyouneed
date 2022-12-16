@@ -12,7 +12,7 @@ from dpr_1024 import *
 def build_index(index_type, root_dir):
     embds, texts = [], []
     current_num = 0
-    for idx in range(100):
+    for idx in range(210):
         try:
             embed, text = torch.load(f'{root_dir}/inference_{idx}.pt')
             print(f'[!] load {root_dir}/inference_{idx}.pt')

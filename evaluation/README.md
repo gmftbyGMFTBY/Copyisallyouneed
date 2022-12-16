@@ -4,8 +4,12 @@
 
 | Models | MAUVE (gpt2-large,c=1.0) | Rep-2 | Rep-3 | Rep-4 | Diversity | Coherence |
 | - | - | - | - | - | - | - |
-| gpt2 (nucleus sampling p=0.95)  | 79.81 | 0.2787 | 0.2467 | 0.2328 | 0.4169 | -3.01 |
-| knnlm (nucleus sampling p=0.95) | 80.30 | 0.031 | 0.006 | 0.002 | 0.962 | -2.93 |
-| retro (nucleus sampling p=0.95) | | | | | | |
-| copyisallyouneed (nucleus sampling p=0.95) | 79.44 | 0.0787 | 0.0299 | 0.0146 | 0.8807 | -2.94 |
-| copyisallyouneed (nucleus sampling p=0.95) | 78.87 | 0.0773 | 0.0298 | 0.0149 | 0.8807 | -2.93 |
+| gpt2 (greedy search)  | 70.53 | 0.4356 | 0.3855 | 0.355 | 0.2237 | -0.74 |
+| gpt2 (nucleus sampling p=0.95)  | 80.53 | 0.051 | 0.0133 | 0.005 | 0.9322 | -3.65 |
+| neurlab gpt2 (greedy search)  | 75.25 | 0.346 | 0.2795 | 0.2398 | 0.3583 | -1.34 |
+| neurlab gpt2 (nucleus sampling p=0.95)  | 81.39 | 0.0544 | 0.0149 | 0.005 | 0.9268 | -3.72 |
+| knnlm (nucleus sampling p=0.95) | 80.75 | 0.0312 | 0.0059 | 0.0017 | 0.9615 | -4.92 |
+| retro (greedy search) | 64.93 | 0.4465 | 0.3963 | 0.366 | 0.2119 | -0.74 |
+| retro (nucleus sampling p=0.95) | 71.98 | 0.0621 | 0.0193 | 0.0086 | 0.9119 | -3.63 |
+| copyisallyouneed (greedy search) | 76.04 | 0.2814 | 0.238 | 0.214 | 0.4303 | -1.73 |
+| copyisallyouneed (nucleus sampling p=0.95) | 79.54 | 0.0731 | 0.0266 | 0.0128 | 0.8907 | -2.91 |

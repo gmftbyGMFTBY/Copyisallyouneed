@@ -1,8 +1,10 @@
 tokenizer: 
-    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    # en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    en: neulab/gpt2-finetuned-wikitext103
     zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
 pretrained_model: 
-    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    # en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    en: neulab/gpt2-finetuned-wikitext103
     zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
 
 # train configuration
