@@ -19,7 +19,7 @@ def main_generation(**args):
     config = load_config(args)
     args.update(config)
     agent = load_model(args)
-    # use neurlab gpt2 wikitext103 fine-tuned version
+    # comment the following line to use neurlab gpt2 wikitext103 fine-tuned version
     # agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
     print(f'[!] init model over')
 
@@ -27,7 +27,7 @@ def main_generation(**args):
     torch.cuda.manual_seed_all(1.0)
 
     collection = []
-    with open(f'../data/wikitext103_1024/test.txt') as f:
+    with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -51,5 +51,6 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'neurlab_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
+    with open(f'{args["dataset"]}_neurlab_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
+    # with open(f'{args["dataset"]}_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
         json.dump(result, f, indent=4)

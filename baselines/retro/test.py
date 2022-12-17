@@ -10,8 +10,8 @@ from retro_pytorch.training import top_p
 from transformers import AutoTokenizer
 
 tokenizer = AutoTokenizer.from_pretrained('bert-base-cased')
-# decoding_method = 'sampling'
-decoding_method = 'greedy'
+decoding_method = 'sampling'
+# decoding_method = 'greedy'
 
 # instantiate RETRO, fit it into the TrainingWrapper with correct settings
 
@@ -64,7 +64,8 @@ gpt2_tokenizer = AutoTokenizer.from_pretrained('gpt2')    #  compatible with the
 wrapper.max_seq_len = 200
 
 collection = []
-with open(f'../../data/wikitext103_1024/test.txt') as f:
+# with open(f'../../data/wikitext103_1024/test.txt') as f:
+with open(f'../../data/lawmt_1024/test.txt') as f:
     # collect the valid prefixes
     texts = []
     for line in tqdm(f.readlines()):
@@ -88,5 +89,5 @@ with open(f'../../data/wikitext103_1024/test.txt') as f:
             'text': text, 
         })
 
-with open(f'retro_result_{decoding_method}.json', 'w') as f:
+with open(f'lawmt_retro_result_{decoding_method}.json', 'w') as f:
     json.dump(collection, f, indent=4)

@@ -24,7 +24,7 @@ def main_generation(**args):
     print(f'[!] init model over')
 
     collection = []
-    with open(f'../data/wikitext103_1024/test.txt') as f:
+    with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -48,5 +48,5 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'knnlm_result_{args["decoding_method"]}_full.json', 'w') as f:
+    with open(f'lawmt_knnlm_result_{args["decoding_method"]}_full.json', 'w') as f:
         json.dump(result, f, indent=4)

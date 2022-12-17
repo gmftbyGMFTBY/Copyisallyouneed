@@ -14,3 +14,20 @@
 | retro (nucleus sampling p=0.95) | 71.98 | 0.0621 | 0.0193 | 0.0086 | 0.9119 | -3.63 |
 | copyisallyouneed (greedy search) | 76.04 | 0.2814 | 0.238 | 0.214 | 0.4303 | -1.73 |
 | copyisallyouneed (nucleus sampling p=0.95) | 79.54 | 0.0731 | 0.0266 | 0.0128 | 0.8907 | -2.91 |
+
+## 2. LawMT
+
+| Models | MAUVE (gpt2-large,c=1.0) | Rep-2 | Rep-3 | Rep-4 | Diversity | Coherence |
+| - | - | - | - | - | - | - |
+| gpt2 (greedy search)  | 53.43 | 0.1433 | 0.1017 | 0.0818 | 0.7066 |-0.64 |
+| gpt2 (nucleus sampling p=0.95)  | 53.42 | 0.0395 | 0.0149 | 0.0078 | 0.9388 | -3.61 |
+| neurlab gpt2 (greedy search)  | 55.15  | 0.1375 | 0.0954 | 0.0726 | 0.7236 | -1.20 |
+| neurlab gpt2 (nucleus sampling p=0.95)  | 54.59 | 0.0367 | 0.0128 | 0.0057 | 0.9456 | -3.92 |
+| knnlm (greedy search full) | 53.67 | 0.04 | 0.015 | 0.0085 | 0.9376 | -4.64 |
+| knnlm (nucleus sampling p=0.95 full) | 53.39 | 0.0283 | 0.0097 | 0.0047 | 0.9577 | -5.05 |
+| retro (greedy search) | 52.85 | 0.139 | 0.0996 | 0.0823 | 0.7114 | -0.67 |
+| retro (nucleus sampling p=0.95) | 0.5260 | 0.0347 | 0.0123 | 0.0057 | 0.948 | -4.18 |
+| copyisallyouneed (greedy search) | 53.25 | 0.0806 | 0.0482 | 0.0365 | 0.8432 | -1.51 |
+| copyisallyouneed (nucleus sampling p=0.95) | 53.39 | 0.0501 | 0.0176 | 0.0081 | 0.9256 | -2.78 |
+
+## 3. Wiki-3B

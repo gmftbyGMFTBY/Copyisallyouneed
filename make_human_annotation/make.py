@@ -1,11 +1,19 @@
 import json
 import random
+import sys
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--baseline_path', type=str)
+parser.add_argument('--baseline_name', type=str)
+args = vars(parser.parse_args())
+
+# set the random seed for partial reproduction
 random.seed(0)
 
-with open('copyisallyouneed_result.json') as f:
+with open('raw_files/copyisallyouneed_result.json') as f:
     copyisallyouneed_result = json.load(f)
-with open('neurlab_gpt2_result_nucleus_sampling.json') as f:
+with open(args['baseline_path']) as f:
     gpt2_result = json.load(f)
 
 assert len(copyisallyouneed_result) == len(gpt2_result)
@@ -22,7 +30,7 @@ max_num = 100
 index = random.sample(range(len(results)), max_num)
 labels = [labels[i] for i in index]
 results = [results[i] for i in index]
-with open('human_annotation.json', 'w') as f:
+with open(f'annotation_files/{args["baseline_name"]}/human_annotation.json', 'w') as f:
     json.dump(results, f, indent=4)
-with open('index.json', 'w') as f:
+with open(f'annotation_files/{args["baseline_name"]}/index.json', 'w') as f:
     json.dump(labels, f, indent=4)

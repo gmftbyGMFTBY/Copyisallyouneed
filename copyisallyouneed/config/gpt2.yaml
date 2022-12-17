@@ -10,8 +10,8 @@ pretrained_model:
 # train configuration
 train:
     load_param: true
-    total_step: 10010
-    save_every: 2000
+    total_step: 100010
+    save_every: 10000
     lr: 0.00005
     grad_clip: 0.1
     seed: 0

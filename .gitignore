@@ -105,6 +105,7 @@ venv.bak/
 
 *.rar
 *.txt
+*.zip
 *.json
 *.jsonl
 *.csv
