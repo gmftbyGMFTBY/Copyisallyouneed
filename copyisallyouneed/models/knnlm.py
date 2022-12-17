@@ -69,33 +69,6 @@ class KNNLMBaseline(nn.Module):
         return new_logits
 
     @torch.no_grad()
-    def greedy_search(self, batch):
-        self.model.eval()
-        ids = batch['ids']
-        generated = []
-        while True:
-            output = self.model(
-                input_ids=ids,
-                attention_mask=torch.ones_like(ids),
-                output_hidden_states=True
-            )
-            hidden = output['hidden_states'][-1][-1, -1, :]    # [H]
-            next_token_logits = output['logits'][-1, -1, :]    # [V]
-            next_token_logits = self.generate_new_logits(next_token_logits, hidden, topk=self.args['search_topk'], temp=self.args['temp'])
-            ignored_tokens = [198, 2954, 1279, 27, 29, self.unk]
-            next_token_logits[ignored_tokens] = -np.inf
-
-            next_token = next_token_logits.max(dim=-1)[1].unsqueeze(0)
-            if len(generated) > self.test_max_len:
-                break
-            generated.append(next_token.item())
-            # reconstruct the ids and ids_mask
-            ids = torch.cat((ids, next_token.unsqueeze(0)), dim=1)    # [1, S+1]
-            # ids = ids[:, -self.test_max_ctx_len:]
-        string = self.vocab.decode(generated)
-        return string
-
-    @torch.no_grad()
     def nucleus_sampling(self, ids, max_length, top_p):
         generated = []
         past_key_values = None

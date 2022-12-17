@@ -43,11 +43,10 @@ def main_generation(**args):
                 'reference': reference, 
                 'text': text
             })
-            ipdb.set_trace()
     return collection
 
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'knnlm_result_{args["decoding_method"]}.json', 'w') as f:
+    with open(f'knnlm_result_{args["decoding_method"]}_full.json', 'w') as f:
         json.dump(result, f, indent=4)

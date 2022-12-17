@@ -17,7 +17,7 @@ def test_ppl(**args):
     config = load_config(args)
     args.update(config)
     agent = load_model(args)
-    # agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
+    agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
     print(f'[!] init model over')
 
     test_data, test_iter, sampler = load_dataset(args)

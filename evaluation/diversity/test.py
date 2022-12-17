@@ -46,8 +46,10 @@ if __name__ == "__main__":
     # dataset = load_result('copyisallyouneed_result_greedy.json')
     # dataset = load_result('retro_result_greedy.json')
     # dataset = load_result('retro_result_sampling.json')
-    dataset = load_result('neurlab_gpt2_result_greedy.json')
+    # dataset = load_result('neurlab_gpt2_result_greedy.json')
     # dataset = load_result('neurlab_gpt2_result_nucleus_sampling.json')
+    # dataset = load_result('knnlm_result_nucleus_sampling_full.json')
+    dataset = load_result('knnlm_result_greedy_full.json')
     n = [2, 3, 4]
     nlp = spacy.load('en_core_web_sm')
     func = distinct_sentence_level_char

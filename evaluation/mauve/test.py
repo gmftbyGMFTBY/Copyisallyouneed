@@ -37,7 +37,9 @@ if __name__ == "__main__":
     # dataset = load_result('copyisallyouneed_result_greedy.json')
     # dataset = load_result('retro_result_greedy.json')
     # dataset = load_result('retro_result_sampling.json')
-    dataset = load_result('neurlab_gpt2_result_greedy.json')
+    # dataset = load_result('neurlab_gpt2_result_greedy.json')
+    # dataset = load_result('knnlm_result_nucleus_sampling_full.json')
+    dataset = load_result('knnlm_result_greedy_full.json')
     out = mauve.compute_mauve(
         p_text=[i[0] for i in dataset], 
         q_text=[i[1] for i in dataset], 

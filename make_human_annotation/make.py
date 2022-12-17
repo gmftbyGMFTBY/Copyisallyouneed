@@ -5,7 +5,7 @@ random.seed(0)
 
 with open('copyisallyouneed_result.json') as f:
     copyisallyouneed_result = json.load(f)
-with open('gpt2_result.json') as f:
+with open('neurlab_gpt2_result_nucleus_sampling.json') as f:
     gpt2_result = json.load(f)
 
 assert len(copyisallyouneed_result) == len(gpt2_result)

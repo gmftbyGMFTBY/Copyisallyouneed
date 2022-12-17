@@ -428,7 +428,7 @@ class Agent:
             )
 
     @torch.no_grad()
-    def test_model_ppl(self, test_iter, max_counter=10000):
+    def test_model_ppl(self, test_iter, max_counter=100):
         ppls = []
         counter = 0
         for batch in tqdm(test_iter):
