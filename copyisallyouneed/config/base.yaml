@@ -2,6 +2,7 @@ datasets:
     wikitext103: en
     chinese_documents: zh
     lawmt: en
+    en_wiki: en
 
 models:
     copyisallyouneed: 
@@ -21,6 +22,7 @@ models:
 # root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed
 root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed
 # data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/wikitext103_1024
-data_root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed/data/wikitext103_1024
-version: 2004
+# data_root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed/data/lawmt_1024
+data_root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed/data/en_wiki_1024
+version: 2003
 # ========= Global configuration ========== #

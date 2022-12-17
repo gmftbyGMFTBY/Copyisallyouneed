@@ -1,4 +1,11 @@
-# Wikitext103
+# Evaluation Commands
+
+```bash
+# run the evaluation in cuda=0 device, the results file is defined in the run.sh file
+./run.sh 0
+```
+
+# Evaluation Results
 
 ## 1. Wikitext103-1024
 
@@ -26,8 +33,23 @@
 | knnlm (greedy search full) | 53.67 | 0.04 | 0.015 | 0.0085 | 0.9376 | -4.64 |
 | knnlm (nucleus sampling p=0.95 full) | 53.39 | 0.0283 | 0.0097 | 0.0047 | 0.9577 | -5.05 |
 | retro (greedy search) | 52.85 | 0.139 | 0.0996 | 0.0823 | 0.7114 | -0.67 |
-| retro (nucleus sampling p=0.95) | 0.5260 | 0.0347 | 0.0123 | 0.0057 | 0.948 | -4.18 |
+| retro (nucleus sampling p=0.95) | 52.60 | 0.0347 | 0.0123 | 0.0057 | 0.948 | -4.18 |
 | copyisallyouneed (greedy search) | 53.25 | 0.0806 | 0.0482 | 0.0365 | 0.8432 | -1.51 |
 | copyisallyouneed (nucleus sampling p=0.95) | 53.39 | 0.0501 | 0.0176 | 0.0081 | 0.9256 | -2.78 |
 
-## 3. Wiki-3B
+## 3. EN-Wiki
+
+| Models | MAUVE (gpt2-large,c=1.0) | Rep-2 | Rep-3 | Rep-4 | Diversity | Coherence |
+| - | - | - | - | - | - | - |
+| gpt2 (greedy search)  | 79.62 | 0.5075 | 0.4601 | 0.4314 | 0.1512 | -0.81 |
+| gpt2 (nucleus sampling p=0.95)  | 93.82 | 0.0616 | 0.0154 | 0.0061 | 0.9183 | -3.55 |
+| neurlab gpt2 (greedy search)  |  83.64 | 0.4254 | 0.359 | 0.3197 | 0.2505 |  -1.29 |
+| neurlab gpt2 (nucleus sampling p=0.95)  | 93.79 | 0.0602 | 0.0153 | 0.0053 | 0.9204 |-3.88|
+| knnlm (greedy search full) |  | |  |  |  |  |
+| knnlm (nucleus sampling p=0.95 full) |  |  |  |  |  |  |
+| retro (greedy search) | 76.58 | 0.5493 | 0.5017 | 0.4714 | 0.1187 |  -0.80 |
+| retro (nucleus sampling p=0.95) | 93.34 | 0.0809 | 0.0275 | 0.0136 | 0.8817 | -3.54 |
+| copyisallyouneed (greedy search) |  |  |  |  |  |  |
+| copyisallyouneed (nucleus sampling p=0.95) | |  |  |  | |  |
+
+

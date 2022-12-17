@@ -8,6 +8,8 @@ from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel, AutoTokenizer
 import argparse
 
+'''In this script, we only test the samples that contains more than 128 tokens in reference'''
+
 def parse_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_path", type=str, default='gpt2_result.json')
@@ -18,6 +20,7 @@ def load_result(path):
     with open(path) as f:
         test_set = json.load(f)
         dataset = []
+        invalid_num = 0
         for item in tqdm(test_set):
             prefix = item['prefix']
             reference = item['reference']
@@ -27,12 +30,13 @@ def load_result(path):
             result_ids = vocab.encode(result, add_special_tokens=False)
             min_length = min(len(reference_ids), len(result_ids))
             reference_ids, result_ids = reference_ids[:min_length], result_ids[:min_length]
-            reference = vocab.decode(reference_ids)
-            result = vocab.decode(result_ids)
-            reference = prefix + ' ' + reference
-            result = prefix + ' ' + result
-            dataset.append((reference, result))
-    print(f'[!] collect {len(dataset)} samples')
+            if len(reference_ids) > 0 and len(result_ids) > 0:
+                reference = vocab.decode(reference_ids)
+                result = vocab.decode(result_ids)
+                # reference = prefix + ' ' + reference
+                # result = prefix + ' ' + result
+                dataset.append((reference, result))
+    print(f'[!] collect {len(dataset)} samples; invalid num: {invalid_num}')
     return dataset
 
 if __name__ == "__main__":

@@ -22,8 +22,8 @@ class KNNLMInferenceDataset(Dataset):
                 if len(tokens) > 32:
                     self.data.append(chunk)
                     counter += len(tokens)
-                    if counter >= 103000000:
-                        break
+                    # if counter >= 103000000:
+                    #     break
                 pbar.set_description(f'[!] collect key-values: {counter}')
         print(f'[!] collect {len(self.data)} samples and {counter} key-values')
 

@@ -416,7 +416,7 @@ class Agent:
                 embds = torch.cat(embds, dim=0).numpy()
                 torch.save(
                     (embds, texts), 
-                    f'{self.args["root_dir"]}/data/wikitext103_1024/knnlm/inference_{counter}.pt'
+                    f'{self.args["root_dir"]}/data/{args["dataset"]}_1024/knnlm/inference_{args["local_rank"]}_{counter}.pt'
                 )
                 counter += 1
                 texts, embds = [], []
@@ -424,7 +424,7 @@ class Agent:
             embds = torch.cat(embds, dim=0).numpy()
             torch.save(
                 (embds, texts), 
-                f'{self.args["root_dir"]}/data/wikitext103_1024/knnlm/inference_{counter}.pt'
+                f'{self.args["root_dir"]}/data/{args["dataset"]}_1024/knnlm/inference_{args["local_rank"]}_{counter}.pt'
             )
 
     @torch.no_grad()

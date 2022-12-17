@@ -31,4 +31,8 @@ def build_index(index_type, root_dir):
     print(f'[!] save faiss index over')
 
 if __name__ == "__main__":
-    build_index('IVF10000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/wikitext103_1024/knnlm')
+    # IVF100000,PQ16 for wikitext103 
+    # build_index('IVF100000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/wikitext103_1024/knnlm')
+
+    # IVF100000,PQ16 for en-wiki (3B tokens)
+    build_index('IVF2000000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/{args["dataset"]}_1024/knnlm')

@@ -5,6 +5,13 @@ import jieba
 import ipdb
 import numpy as np
 from transformers import AutoTokenizer
+import argparse
+
+
+def parse_config():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test_path", type=str, default='gpt2_result.json')
+    return parser.parse_args()
 
 def load_result(path):
     with open(path) as f:
@@ -38,27 +45,9 @@ def distinct_sentence_level_char(sentence, n=1):
         return 1.
 
 if __name__ == "__main__":
+    args = vars(parse_config())
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
-    # dataset = load_result('copyisallyouneed_result.json')
-    # dataset = load_result('knnlm_result.json')
-    # dataset = load_result('gpt2_result.json')
-    # dataset = load_result('gpt2_result_greedy.json')
-    # dataset = load_result('copyisallyouneed_result_greedy.json')
-    # dataset = load_result('retro_result_greedy.json')
-    # dataset = load_result('retro_result_sampling.json')
-    # dataset = load_result('neurlab_gpt2_result_greedy.json')
-    # dataset = load_result('neurlab_gpt2_result_nucleus_sampling.json')
-    # dataset = load_result('knnlm_result_nucleus_sampling_full.json')
-    # dataset = load_result('knnlm_result_greedy_full.json')
-    # dataset = load_result('lawmt_gpt2_result_nucleus_sampling.json')
-    # dataset = load_result('lawmt_retro_result_greedy.json')
-    # dataset = load_result('lawmt_copyisallyouneed_result_nucleus_sampling.json')
-    # dataset = load_result('lawmt_knnlm_result_nucleus_sampling_full.json')
-    # dataset = load_result('lawmt_gpt2_result_greedy.json')
-    # dataset = load_result('lawmt_neurlab_gpt2_result_greedy.json')
-    # dataset = load_result('lawmt_retro_result_sampling.json')
-    # dataset = load_result('lawmt_knnlm_result_greedy_full.json')
-    dataset = load_result('lawmt_copyisallyouneed_result_greedy.json')
+    dataset = load_result(args['test_path'])
     n = [2, 3, 4]
     nlp = spacy.load('en_core_web_sm')
     func = distinct_sentence_level_char
