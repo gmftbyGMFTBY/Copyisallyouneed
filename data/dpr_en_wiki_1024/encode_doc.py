@@ -57,7 +57,8 @@ def inference(**args):
     sampler.set_epoch(0)
 
     text_lists, embeddings, size, counter = [], [], 0, 0
-    for documents, labels in tqdm(data_iter):
+    pbar = tqdm(data_iter)
+    for documents, labels in pbar:
         embed = inference_one_batch(documents)
         text_lists.extend(labels)
         embeddings.append(embed)
@@ -67,6 +68,7 @@ def inference(**args):
             torch.save((text_lists, embed), f'dpr_chunk_{args["local_rank"]}_{counter}.pt')
             counter += 1
             embeddings = []
+        pbar.set_description(f'[!] collect {len(text_lists)} samples')
     if len(embed) > 0:
         embed = torch.cat(embeddings)
         torch.save((text_lists, embed), f'dpr_chunk_{args["local_rank"]}_{counter}.pt')

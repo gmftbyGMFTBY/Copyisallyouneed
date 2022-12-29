@@ -16,14 +16,16 @@ if __name__ == "__main__":
     args = vars(parser_args())
     # init the model
     args['mode'] = 'inference'
+    
+    torch.cuda.set_device(args['local_rank'])
+    torch.distributed.init_process_group(backend='nccl', init_method='env://')
+    
     config = load_config(args)
     args.update(config)
     agent = load_model(args)
     agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_{args["version"]}_10000.pt')
     print(f'[!] load the KNN-LM model over')
     
-    torch.cuda.set_device(args['local_rank'])
-    torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
     # inference 
     args['global_rank'] = dist.get_rank()

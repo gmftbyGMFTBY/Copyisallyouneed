@@ -1,7 +1,8 @@
 #!/bin/bash
 
 cuda=$1
-file_name=raw_files/enwiki_retro_result_sampling.json
+# file_name=raw_files/wikitext103_copyisallyouneed_result_nucleus_sampling_v2.json
+file_name=raw_files/wikitext103_neurlab_gpt2_result_nucleus_sampling_v2.json
 
 # coherence
 CUDA_VISIBLE_DEVICES=$cuda python coherence/test.py --test_path $file_name

@@ -34,7 +34,7 @@ class KNNLMInferenceDataset(Dataset):
         return self.data[i]
 
     def collate(self, batch):
-        item = self.vocab(batch, padding=True)
+        item = self.vocab(batch, padding=True, truncation=True, max_length=self.args['max_length'], add_special_tokens=False)
         ids = torch.LongTensor(item['input_ids']).cuda()
         mask = torch.LongTensor(item['attention_mask']).cuda()
         vl = mask.sum(dim=-1)
