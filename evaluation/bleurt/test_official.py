@@ -22,12 +22,6 @@ def load_result(path):
             reference = item['reference']
             result = item['text']
 
-            reference_ids = vocab.encode(reference, add_special_tokens=False)
-            result_ids = vocab.encode(result, add_special_tokens=False)
-            min_length = min(len(reference_ids), len(result_ids))
-            reference_ids, result_ids = reference_ids[:min_length], result_ids[:min_length]
-            reference = vocab.decode(reference_ids)
-            result = vocab.decode(result_ids)
             reference = prefix + ' ' + reference
             result = prefix + ' ' + result
             dataset.append((reference, result))
@@ -37,10 +31,9 @@ def load_result(path):
 
 if __name__ == "__main__":
     args = vars(parse_config())
-    vocab = AutoTokenizer.from_pretrained('gpt2-large')
     dataset = load_result(args["test_path"])
 
-    bleurt = load('bleurt', module_type='metric', checkpoint='BLEURT-20')
+    bleurt = load('bleurt', module_type='metric', checkpoint='bleurt-large-512')
     scores = []
     for reference, result in tqdm(dataset):
         result = bleurt.compute(references=[reference], predictions=[result])

@@ -48,5 +48,5 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'lawmt_knnlm_result_{args["decoding_method"]}_full.json', 'w') as f:
+    with open(f'raw_files/{args["dataset"]}_knnlm_result_{args["decoding_method"]}_full.json', 'w') as f:
         json.dump(result, f, indent=4)
