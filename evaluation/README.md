@@ -9,10 +9,6 @@
 
 ## 1. Wikitext103-1024
 
-__roberta-large + without length truncation + prefix__
-__roberta-large + without length truncation + no prefix__
-__roberta-large + without length truncation + prefix + reference >= 100__
-
 | Models | MAUVE (gpt2-large,c=2.0) | Rep-2 | Rep-3 | Rep-4 | Diversity | Coherence |
 | - | - | - | - | - | - | - |
 | gpt2 (greedy search)                       | 19.87 | 0.4356 | 0.3855 | 0.355 | 0.2237 | -0.74 | 

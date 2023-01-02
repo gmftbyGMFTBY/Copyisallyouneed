@@ -1,0 +1,1 @@
+Results for raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling.json MAUVE: 0.6697648258375373 Dataset size 500

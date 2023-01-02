@@ -1,0 +1,1 @@
+Results for raw_files/gpt2_result.json MAUVE: 0.25591242095025296 Dataset size 1785

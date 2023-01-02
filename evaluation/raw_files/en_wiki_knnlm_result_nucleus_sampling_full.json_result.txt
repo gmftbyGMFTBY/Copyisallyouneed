@@ -1,0 +1,1 @@
+Results for raw_files/en_wiki_knnlm_result_nucleus_sampling_full.json MAUVE: 0.6634579310473816 Dataset size 500

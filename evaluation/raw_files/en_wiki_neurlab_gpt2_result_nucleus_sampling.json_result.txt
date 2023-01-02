@@ -1,0 +1,1 @@
+Results for raw_files/en_wiki_neurlab_gpt2_result_nucleus_sampling.json MAUVE: 0.5920711298809374 Dataset size 500

@@ -1,0 +1,1 @@
+Results for raw_files/en_wiki_copyisallyouneed_result_greedy.json MAUVE: 0.5883619727863438 Dataset size 500

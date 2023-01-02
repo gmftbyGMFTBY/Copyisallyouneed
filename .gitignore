@@ -153,3 +153,4 @@ easynlp/playground/test-phrase-copy
 !data/run.sh
 !data/runbert.sh
 !requirements.txt
+!evaluation/raw_files/*

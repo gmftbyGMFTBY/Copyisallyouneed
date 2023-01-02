@@ -38,7 +38,7 @@ def load_result(path):
 
 if __name__ == "__main__":
     args = vars(parse_config())
-    vocab = AutoTokenizer.from_pretrained('gpt2-xl')
+    vocab = AutoTokenizer.from_pretrained('gpt2-large')
     dataset = load_result(args["test_path"])
     out = mauve.compute_mauve(
         p_text=[i[0] for i in dataset], 
