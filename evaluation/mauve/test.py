@@ -20,24 +20,25 @@ def load_result(path):
         dataset = []
         for item in tqdm(test_set):
             prefix = item['prefix']
-            reference = item['reference']
+            reference = item['reference'].strip()
             result = item['text']
 
             reference_ids = vocab.encode(reference, add_special_tokens=False)
             result_ids = vocab.encode(result, add_special_tokens=False)
             # min_length = min(len(reference_ids), len(result_ids))
             # reference_ids, result_ids = reference_ids[:min_length], result_ids[:min_length]
-            reference = vocab.decode(reference_ids)
-            result = vocab.decode(result_ids)
+            # reference = vocab.decode(reference_ids)
+            # result = vocab.decode(result_ids)
             reference = prefix + ' ' + reference
             result = prefix + ' ' + result
-            dataset.append((reference, result))
+            if len(reference_ids) > 0:
+                dataset.append((reference, result))
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
 if __name__ == "__main__":
     args = vars(parse_config())
-    vocab = AutoTokenizer.from_pretrained('gpt2-large')
+    vocab = AutoTokenizer.from_pretrained('gpt2-xl')
     dataset = load_result(args["test_path"])
     out = mauve.compute_mauve(
         p_text=[i[0] for i in dataset], 
@@ -45,6 +46,7 @@ if __name__ == "__main__":
         device_id=args['device'], 
         max_text_length=512, 
         verbose=False, 
-        mauve_scaling_factor=1.0, 
+        # 2 for wikitext and lawmt; 2 and 3 and 4 for en-wiki; 2 for lawmt
+        mauve_scaling_factor=2.0, 
     )
-    print('MAUVE:', out.mauve)
+    print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))

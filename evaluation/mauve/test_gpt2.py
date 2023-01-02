@@ -9,7 +9,8 @@ from transformers import AutoModel, AutoTokenizer
 import argparse
 
 def get_features(model, ids, ids_mask):
-    features = model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1][range(len(ids)), 0, :]    # [B, E]
+    length = ids_mask.sum(dim=-1) - 1
+    features = model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1][range(len(ids)), length, :]    # [B, E]
     return features.cpu()
 
 def get_vocab_and_model(path):
@@ -23,10 +24,10 @@ def convert_to_batch(vocab, lists):
     ids = []
     for item in lists:
         tokens = vocab.encode(item, add_special_tokens=False)
-        tokens = torch.LongTensor(tokens[:512])
+        tokens = torch.LongTensor(tokens[-512:])
         ids.append(tokens)
-    ids = pad_sequence(ids, batch_first=True, padding_value=vocab.pad_token_id)
-    mask = generate_mask(ids, pad_token_idx=vocab.pad_token_id)
+    ids = pad_sequence(ids, batch_first=True, padding_value=vocab.eos_token_id)
+    mask = generate_mask(ids, pad_token_idx=vocab.eos_token_id)
     ids, mask = to_cuda(ids, mask)
     return ids, mask
 
@@ -61,21 +62,15 @@ def load_result(path):
             reference = item['reference']
             result = item['text']
             
-            reference_ids = vocab.encode(reference, add_special_tokens=False)
-            result_ids = vocab.encode(result, add_special_tokens=False)
-
-            if len(reference_ids) > 0:
-                reference = prefix + ' ' + reference
-                result = prefix + ' ' + result
-
-                dataset.append((reference, result))
+            # reference_ids = vocab.encode(reference, add_special_tokens=False)
+            dataset.append((reference, result))
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
 if __name__ == "__main__":
     args = vars(parse_config())
-    vocab, model = get_vocab_and_model('roberta-large')
-    batch_size = 32
+    vocab, model = get_vocab_and_model('gpt2-xl')
+    batch_size = 16
     dataset = load_result(args["test_path"])
     with torch.no_grad():
         gt_f, pre_f = [], []
@@ -91,6 +86,6 @@ if __name__ == "__main__":
             p_features=gt_f,
             q_features=pre_f,
             device_id=args['device'],
-            mauve_scaling_factor=2.0, 
+            mauve_scaling_factor=1.0, 
         )
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))

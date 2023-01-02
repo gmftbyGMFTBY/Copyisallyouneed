@@ -6,15 +6,18 @@ import json
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel, AutoTokenizer
+from transformers import ElectraForPreTraining, ElectraTokenizerFast
 import argparse
 
 def get_features(model, ids, ids_mask):
-    features = model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1][range(len(ids)), 0, :]    # [B, E]
+    length = ids_mask.sum(dim=-1) - 1
+    # features = model(input_ids=ids, output_hidden_states=True).hidden_states[-1][range(len(ids)), length, :]    # [B, E]
+    features = model(input_ids=ids, output_hidden_states=True).hidden_states[-1][range(len(ids)), 0, :]    # [B, E]
     return features.cpu()
 
 def get_vocab_and_model(path):
-    vocab = AutoTokenizer.from_pretrained(path)
-    model = AutoModel.from_pretrained(path)
+    model= ElectraForPreTraining.from_pretrained("google/electra-large-discriminator")
+    vocab= ElectraTokenizerFast.from_pretrained("google/electra-large-discriminator")
     model.eval()
     model.cuda()
     return vocab, model
@@ -23,10 +26,10 @@ def convert_to_batch(vocab, lists):
     ids = []
     for item in lists:
         tokens = vocab.encode(item, add_special_tokens=False)
-        tokens = torch.LongTensor(tokens[:512])
+        tokens = torch.LongTensor(tokens[-512:])
         ids.append(tokens)
     ids = pad_sequence(ids, batch_first=True, padding_value=vocab.pad_token_id)
-    mask = generate_mask(ids, pad_token_idx=vocab.pad_token_id)
+    mask = generate_mask(ids, pad_token_idx=vocab.eos_token_id)
     ids, mask = to_cuda(ids, mask)
     return ids, mask
 
@@ -60,21 +63,29 @@ def load_result(path):
             prefix = item['prefix']
             reference = item['reference']
             result = item['text']
+            prefix = prefix.replace('<unk>', '[UNK]')
+            reference = reference.replace('<unk>', '[UNK]')
+            result = result.replace('<unk>', '[UNK]')
             
             reference_ids = vocab.encode(reference, add_special_tokens=False)
-            result_ids = vocab.encode(result, add_special_tokens=False)
 
-            if len(reference_ids) > 0:
-                reference = prefix + ' ' + reference
-                result = prefix + ' ' + result
+            # remove the \n and unk
+            # try:
+            #     reference_ids.remove(50118)
+            #     reference_ids.remove(3)
+            # except:
+            #     pass
 
+            if len(reference_ids) <= 130: 
+                # reference_ids = reference_ids[:120]
+                # reference = vocab.decode(reference_ids)
                 dataset.append((reference, result))
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
 if __name__ == "__main__":
     args = vars(parse_config())
-    vocab, model = get_vocab_and_model('roberta-large')
+    vocab, model = get_vocab_and_model('roberta-base')
     batch_size = 32
     dataset = load_result(args["test_path"])
     with torch.no_grad():
@@ -91,6 +102,6 @@ if __name__ == "__main__":
             p_features=gt_f,
             q_features=pre_f,
             device_id=args['device'],
-            mauve_scaling_factor=2.0, 
+            mauve_scaling_factor=1.0, 
         )
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))

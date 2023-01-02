@@ -26,7 +26,10 @@ def load_result(path):
             prefix = item['prefix']
             reference = item['reference']
             result = item['text']
-            dataset.append((reference, result))
+
+            reference_ids = vocab.encode(reference, add_special_tokens=False)
+            if len(reference_ids) <= 130:
+                dataset.append((reference, result))
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
