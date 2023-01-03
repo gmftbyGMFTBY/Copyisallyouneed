@@ -1,0 +1,1 @@
+Results for raw_files/retro_result_greedy.json BARTScore: -5.573 Dataset size 1790

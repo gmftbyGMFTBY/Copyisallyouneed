@@ -38,4 +38,4 @@ if __name__ == "__main__":
     for reference, result in tqdm(dataset):
         result = bleurt.compute(references=[reference], predictions=[result])
         scores.append(result['scores'][0])
-    print(f'BLEURT Scores:', round(np.mean(scores), 4))
+    print('Results for', args['test_path'], 'BLEURT:', round(np.mean(scores), 4), 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_bleurt_result.txt', 'w'))

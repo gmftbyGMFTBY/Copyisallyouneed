@@ -1,0 +1,1 @@
+Results for raw_files/retro_result_sampling.json BARTScore: -5.8255 Dataset size 1790

@@ -1,0 +1,1 @@
+Results for raw_files/neurlab_gpt2_result_greedy.json BARTScore: -6.2042 Dataset size 1790

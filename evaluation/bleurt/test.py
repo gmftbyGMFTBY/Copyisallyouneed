@@ -26,27 +26,25 @@ def load_result(path):
             reference = item['reference']
             result = item['text']
 
-            reference_ids = vocab.encode(reference, add_special_tokens=False)
-            result_ids = vocab.encode(result, add_special_tokens=False)
-            min_length = min(len(reference_ids), len(result_ids))
-            reference_ids, result_ids = reference_ids[:min_length], result_ids[:min_length]
-            reference = vocab.decode(reference_ids)
-            result = vocab.decode(result_ids)
-            reference = prefix + ' ' + reference
-            result = prefix + ' ' + result
-            dataset.append((reference, result))
+            reference_ids = tokenizer.encode(reference, add_special_tokens=False)
+            result_ids = tokenizer.encode(result, add_special_tokens=False)
+            if 0 < len(reference_ids) < 200:
+                reference = tokenizer.decode(reference_ids[:128])
+                result = tokenizer.decode(result_ids[:128])
+                reference = prefix + ' ' + reference
+                result = prefix + ' ' + result
+                dataset.append((reference, result))
     print(f'[!] collect {len(dataset)} samples')
     return dataset
 
 
 if __name__ == "__main__":
     args = vars(parse_config())
-    vocab = AutoTokenizer.from_pretrained('gpt2-large')
-    dataset = load_result(args["test_path"])
 
     tokenizer = AutoTokenizer.from_pretrained("Elron/bleurt-large-512")
     model = AutoModelForSequenceClassification.from_pretrained("Elron/bleurt-large-512")
     model.eval().cuda()
+    dataset = load_result(args["test_path"])
     
     with torch.no_grad():
         scores = []
@@ -57,4 +55,5 @@ if __name__ == "__main__":
                 items[key] = tokenize_output[key].cuda()
             score = model(**items)[0].squeeze()
             scores.append(score.item())
-        print(f'BLEURT Scores:', round(np.mean(scores), 4))
+        
+    print('Results for', args['test_path'], 'BLEURT:', round(np.mean(scores), 4), 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_bleurt_result.txt', 'w'))

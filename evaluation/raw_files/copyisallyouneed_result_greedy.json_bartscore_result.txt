@@ -1,0 +1,1 @@
+Results for raw_files/copyisallyouneed_result_greedy.json BARTScore: -6.659 Dataset size 1790

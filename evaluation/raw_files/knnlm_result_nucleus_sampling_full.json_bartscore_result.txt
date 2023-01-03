@@ -1,0 +1,1 @@
+Results for raw_files/knnlm_result_nucleus_sampling_full.json BARTScore: -7.5884 Dataset size 1790
