@@ -41,7 +41,7 @@
 ## 3. EN-Wiki
 
 | Models | MAUVE (gpt2-large,c=2.0) | Rep-2 | Rep-3 | Rep-4 | Diversity | Coherence |
-| - | - | - | - | - | - | - | - |
+| - | - | - | - | - | - | - |
 | gpt2 (greedy search)                         | 40.97 | 0.5075 | 0.4601 | 0.4314 | 0.1512 | -0.81 |
 | gpt2 (nucleus sampling p=0.95)               | 64.62 | 0.0616 | 0.0154 | 0.0061 | 0.9183 | -3.55 |
 | neurlab gpt2 (greedy search)                 | 43.22 | 0.4254 | 0.359 | 0.3197 | 0.2505 |  -1.29 |
