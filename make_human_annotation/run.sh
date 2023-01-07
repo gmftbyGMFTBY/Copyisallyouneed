@@ -1,7 +1,11 @@
 #!/bin/bash
 
-baseline_paths=(gpt2_result_nucleus_sampling.json neurlab_gpt2_result_nucleus_sampling.json retro_result_sampling.json knnlm_result_nucleus_sampling_full.json)
-baseline_names=(gpt2_nucleus_sampling neurlab_gpt2_nucleus_sampling retro_nucleus_sampling knnlm_nucleus_sampling)
+# baseline_paths=(gpt2_result_nucleus_sampling.json neurlab_gpt2_result_nucleus_sampling.json retro_result_sampling.json knnlm_result_nucleus_sampling_full.json lawmt_gpt2_nucleus_sampling.json en_wiki_gpt2_nucleus_sampling.json lawmt_copysiallyouneed_nucleus_sampling.json en_wiki_copyisallyouneed_nucleus_sampling.json)
+# baseline_names=(gpt2_nucleus_sampling neurlab_gpt2_nucleus_sampling retro_nucleus_sampling knnlm_nucleus_sampling lawmt_gpt2_nucleus_sampling en_wiki_gpt2_nucleus_sampling lawmt_copyisallyouneed_nucleus_sampling en_wiki_copyisallyouneed_nucleus_sampling)
+# baseline_paths=(lawmt_gpt2_result_nucleus_sampling.json)
+# baseline_names=(lawmt_gpt2_nucleus_sampling)
+baseline_paths=(en_wiki_gpt2_result_nucleus_sampling.json)
+baseline_names=(en_wiki_gpt2_nucleus_sampling)
 
 for i in "${!baseline_paths[@]}"; do
     baseline_path=raw_files/${baseline_paths[i]}

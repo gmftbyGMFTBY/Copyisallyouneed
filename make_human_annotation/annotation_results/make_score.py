@@ -40,13 +40,15 @@ def load_evaluation_file(file_name):
             ipdb.set_trace()
     return results
 
-root_dir = ['gpt2_nucleus_sampling', 'neurlab_gpt2_nucleus_sampling', 'retro_nucleus_sampling', 'knnlm_nucleus_sampling']
+# root_dir = ['gpt2_nucleus_sampling', 'neurlab_gpt2_nucleus_sampling', 'retro_nucleus_sampling', 'knnlm_nucleus_sampling']
+root_dir = ['en_wiki_gpt2_nucleus_sampling']
+# root_dir = ['lawmt_gpt2_nucleus_sampling']
 
 dataset = [
     load_evaluation_file(f'{root_dir[0]}/copyisallyouneed-gpt2_nucleus_sampling.xls'),
-    load_evaluation_file(f'{root_dir[1]}/copyisallyouneed-neurlab_gpt2_nucleus_sampling.xls'),
-    load_evaluation_file(f'{root_dir[2]}/copyisallyouneed-retro_nucleus_sampling.xls'),
-    load_evaluation_file(f'{root_dir[3]}/copyisallyouneed-knnlm_nucleus_sampling.xls')
+    # load_evaluation_file(f'{root_dir[1]}/copyisallyouneed-neurlab_gpt2_nucleus_sampling.xls'),
+    # load_evaluation_file(f'{root_dir[2]}/copyisallyouneed-retro_nucleus_sampling.xls'),
+    # load_evaluation_file(f'{root_dir[3]}/copyisallyouneed-knnlm_nucleus_sampling.xls')
 ]
 index = json.load(open(f'{root_dir[0]}/index.json'))
 

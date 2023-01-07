@@ -48,5 +48,6 @@ if __name__ == "__main__":
         verbose=False, 
         # 2 for wikitext and lawmt; 2 and 3 and 4 for en-wiki; 2 for lawmt
         mauve_scaling_factor=2.0, 
+        featurize_model_name='gpt2-large',
     )
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))

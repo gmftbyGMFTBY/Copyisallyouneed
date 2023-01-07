@@ -67,7 +67,6 @@ def load_result(path):
             if len(reference_ids) > 0:
                 reference = prefix + ' ' + reference
                 result = prefix + ' ' + result
-
                 dataset.append((reference, result))
     print(f'[!] collect {len(dataset)} samples')
     return dataset
@@ -91,6 +90,6 @@ if __name__ == "__main__":
             p_features=gt_f,
             q_features=pre_f,
             device_id=args['device'],
-            mauve_scaling_factor=2.0, 
+            mauve_scaling_factor=5.0, 
         )
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))

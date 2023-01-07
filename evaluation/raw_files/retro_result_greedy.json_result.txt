@@ -1,1 +1,1 @@
-Results for raw_files/retro_result_greedy.json MAUVE: 0.19826327967254342 Dataset size 1785
+Results for raw_files/retro_result_greedy.json MAUVE: 1.5384750311838038e-05 Dataset size 1785

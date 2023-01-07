@@ -154,3 +154,4 @@ easynlp/playground/test-phrase-copy
 !data/runbert.sh
 !requirements.txt
 !evaluation/raw_files/*
+!make_human_annotation/*

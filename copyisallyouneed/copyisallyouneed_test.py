@@ -16,6 +16,7 @@ def parser_args():
 
 def main_generation(**args):
     retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200, f'../data/dpr_{args["dataset"]}_1024', 0)
+    # retriever = Retriever(f'../data/wikitext103_1024/base_data_128.txt', 200, f'../data/dpr_1024', 0)
     args['mode'] = 'test'
     config = load_config(args)
     args.update(config)
@@ -28,6 +29,7 @@ def main_generation(**args):
 
     collection = []
     with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+    # with open(f'../data/wikitext103_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -51,5 +53,7 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}.json', 'w') as f:
+    # with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_and_en_wiki_index_on_wikitext_testset.json', 'w') as f:
+    with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_and_en_wiki_index_on_en_wiki_testset.json', 'w') as f:
+    # with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext.json', 'w') as f:
         json.dump(result, f, indent=4)

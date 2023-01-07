@@ -121,6 +121,7 @@ class Agent:
         ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
         prefix_length = len(ids[0])
         # retrieve and encode the documents
+
         documents = retriever.search([text], self.args['doc_topk'])[0]
         # add the prefix
         # documents = [text] + documents

@@ -1,16 +1,16 @@
 tokenizer: 
-    # en: /apdcephfs/share_916081/johntianlan/gpt2_english
-    en: neulab/gpt2-finetuned-wikitext103
+    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    # en: neulab/gpt2-finetuned-wikitext103
     zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
 pretrained_model: 
-    # en: /apdcephfs/share_916081/johntianlan/gpt2_english
-    en: neulab/gpt2-finetuned-wikitext103
+    en: /apdcephfs/share_916081/johntianlan/gpt2_english
+    # en: neulab/gpt2-finetuned-wikitext103
     zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
 
 # train configuration
 train:
     load_param: true
-    total_step: 100010
+    total_step: 50010
     save_every: 10000
     lr: 0.00005
     grad_clip: 0.1

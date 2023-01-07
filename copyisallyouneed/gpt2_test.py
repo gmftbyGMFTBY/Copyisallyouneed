@@ -21,6 +21,8 @@ def main_generation(**args):
     agent = load_model(args)
     # comment the following line to use neurlab gpt2 wikitext103 fine-tuned version
     # agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
+    # agent.load_model(f'{args["root_dir"]}/ckpt/en_wiki/gpt2/best_2003_10000.pt')
+    agent.load_model(f'{args["root_dir"]}/ckpt/lawmt/gpt2/best_2003_10000.pt')
     print(f'[!] init model over')
 
     torch.manual_seed(1.0)
@@ -51,6 +53,7 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'raw_files/{args["dataset"]}_neurlab_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
-    # with open(f'raw_files/{args["dataset"]}_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
+    # with open(f'raw_files/{args["dataset"]}_neurlab_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
+    # v2 is use tht fine-tuned gpt2 model on en-wiki train set
+    with open(f'raw_files/{args["dataset"]}_gpt2_result_{args["decoding_method"]}_v2.json', 'w') as f:
         json.dump(result, f, indent=4)

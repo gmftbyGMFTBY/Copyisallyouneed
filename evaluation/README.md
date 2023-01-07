@@ -29,6 +29,8 @@
 | - | - | - | - | - | - | - |
 | gpt2 (greedy search)                       | 20.32 | 0.1433 | 0.1017 | 0.0818 | 0.7066 |-0.64 |
 | gpt2 (nucleus sampling p=0.95)             | 25.21 | 0.0395 | 0.0149 | 0.0078 | 0.9388 | -3.61 |
+| gpt2-fine-tuned (greedy search)            | 23.00 | 0.0968 | 0.0633 | 0.0483 | 0.8052 | -0.88 |
+| gpt2-fine-tuned (nucleus sampling p=0.95)  | 26.85 | 0.0702 | 0.0217 | 0.009 | 0.9014 | -3.33 |
 | neurlab gpt2 (greedy search)               | 19.08 | 0.1375 | 0.0954 | 0.0726 | 0.7236 | -1.20  |
 | neurlab gpt2 (nucleus sampling p=0.95)     | 22.77 | 0.0367 | 0.0128 | 0.0057 | 0.9456 | -3.92 |
 | knnlm (greedy search full)                 | 19.95 | 0.04 | 0.015 | 0.0085 | 0.9376 | -4.64 |
@@ -44,13 +46,15 @@
 | - | - | - | - | - | - | - |
 | gpt2 (greedy search)                         | 40.97 | 0.5075 | 0.4601 | 0.4314 | 0.1512 | -0.81 |
 | gpt2 (nucleus sampling p=0.95)               | 64.62 | 0.0616 | 0.0154 | 0.0061 | 0.9183 | -3.55 |
-| neurlab gpt2 (greedy search)                 | 43.22 | 0.4254 | 0.359 | 0.3197 | 0.2505 |  -1.29 |
-| neurlab gpt2 (nucleus sampling p=0.95)       | 59.21 | 0.0602 | 0.0153 | 0.0053 | 0.9204 |-3.88| 
+| gpt2-fined (greedy search)                   | 39.46 | 0.4959 | 0.4482 | 0.4199 | 0.1614 | -0.72 |
+| gpt2-fined (nucleus sampling p=0.95)         | 65.39 | 0.0458 | 0.0188 | 0.01   | 0.9268 | -2.67 |
+| neurlab gpt2 (greedy search)                 | 43.22 | 0.4254 | 0.359  | 0.3197 | 0.2505 | -1.29 |
+| neurlab gpt2 (nucleus sampling p=0.95)       | 59.21 | 0.0602 | 0.0153 | 0.0053 | 0.9204 | -3.88 | 
 | knnlm (greedy search full)                   | 65.81 | 0.0948 | 0.0367 | 0.0216 | 0.8531 | -3.85 |
-| knnlm (nucleus sampling p=0.95 full)         | 66.35 | 0.036 | 0.0053 | 0.0013 | 0.9576 | -4.68 |
-| retro (greedy search)                        | 41.99 | 0.5493 | 0.5017 | 0.4714 | 0.1187 |  -0.80 |
+| knnlm (nucleus sampling p=0.95 full)         | 66.35 | 0.036  | 0.0053 | 0.0013 | 0.9576 | -4.68 |
+| retro (greedy search)                        | 41.99 | 0.5493 | 0.5017 | 0.4714 | 0.1187 | -0.80 |
 | retro (nucleus sampling p=0.95)              | 63.78 | 0.0809 | 0.0275 | 0.0136 | 0.8817 | -3.54 |
 | copyisallyouneed (greedy search)             | 58.84 | 0.3611 | 0.3063 | 0.2732 | 0.3221 | -1.65 |
-| copyisallyouneed (nucleus sampling p=0.95)   | 66.98 | 0.1476 | 0.077 | 0.0457 |0.7508 | -2.58 |
+| copyisallyouneed (nucleus sampling p=0.95)   | 66.98 | 0.1476 | 0.077  | 0.0457 | 0.7508 | -2.58 |
 
 

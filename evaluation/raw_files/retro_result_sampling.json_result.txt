@@ -1,1 +1,1 @@
-Results for raw_files/retro_result_sampling.json MAUVE: 0.23512332991080517 Dataset size 1785
+Results for raw_files/retro_result_sampling.json MAUVE: 4.007300798415692e-05 Dataset size 1785

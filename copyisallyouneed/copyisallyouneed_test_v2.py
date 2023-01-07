@@ -15,7 +15,7 @@ def parser_args():
     return parser.parse_args()
 
 def main_generation(**args):
-    retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200, f'../data/dpr_1024', 0)
+    retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200, f'../data/dpr_{args["dataset"]}_1024', 0)
     args['mode'] = 'test'
     config = load_config(args)
     args.update(config)

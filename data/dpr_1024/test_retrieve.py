@@ -12,8 +12,8 @@ from .utils import *
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
-    parser.add_argument('--local_rank', type=int)
-    parser.add_argument('--dataset', type=str)
+    parser.add_argument('--local_rank', type=int, default=0)
+    parser.add_argument('--dataset', type=str, default='data/en_wiki_1024')
     parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--pool_size', default=256, type=int)
     parser.add_argument('--chunk_size', default=256, type=int)
@@ -28,6 +28,18 @@ def load_base_data(path):
             document = '\t'.join(items[:-1])
             label = items[-1].strip()
             # if label.endswith(',0'):
+            datasets[label] = document
+            keys.append(label)
+    print(f'[!] load {len(datasets)} samples') 
+    return datasets, keys 
+
+def append_wikitext_base_data(path, datasets, keys):
+    path = path.replace('en_wiki', 'wikitext103')
+    with open(path) as f:
+        for line in tqdm(f.readlines()):
+            items = line.strip().split('\t')
+            document = '\t'.join(items[:-1])
+            label = 'wikitext,' + items[-1].strip()
             datasets[label] = document
             keys.append(label)
     print(f'[!] load {len(datasets)} samples') 
@@ -52,7 +64,9 @@ class Retriever:
         self.searcher.load(f'{root_dir}/dpr_faiss.ckpt', f'{root_dir}/dpr_corpus.ckpt')
         self.searcher.move_to_gpu(device=local_rank)
         self.max_length = max_length
-        self.base_data, _ = load_base_data(path)
+        self.base_data, keys = load_base_data(path)
+        # append the wikitext103 into the en-wiki index
+        self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
 
     def search(self, text_list, pool_size):
         batch = self.tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt', max_length=self.max_length, truncation=True)
@@ -123,5 +137,5 @@ if __name__ == '__main__':
     args = vars(parser_args())
     torch.cuda.set_device(args['local_rank'])
     base_datasets, keys = load_base_data(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt')
+    ipdb.set_trace()
     search_one_job(args['local_rank'])
-
