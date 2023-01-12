@@ -1,4 +1,5 @@
 from header import *
+import spacy
 
 class Agent:
     
@@ -116,7 +117,7 @@ class Agent:
         print(f'[!] save model into {path}')
 
     @torch.no_grad()
-    def generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0):
+    def generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
         self.model.eval()
         ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
         prefix_length = len(ids[0])
@@ -126,20 +127,25 @@ class Agent:
         # add the prefix
         # documents = [text] + documents
         phrase_reps, phrase_sources = self.get_phrases_fast(documents)
+        print(f'[!] collect {len(phrase_sources)} phrases')
         candidates = []
         encode_time = 0
+        bt = time.time()
         while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
             ids, candidate = self.generate_one_step_fast(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
             candidates.append(candidate)
             # encode the document prefix
-            if len(ids[0]) > 64 and encode_time == 0:
+            if len(ids[0]) > 32 and encode_time == 0:
                 prefix_phrase_reps, prefix_phrase_sources = self.get_prefix_phrases_fast([self.model.tokenizer.decode(ids[0])])
                 phrase_reps = torch.cat([phrase_reps, prefix_phrase_reps], dim=0)
                 phrase_sources.extend(prefix_phrase_sources)
                 print(f'[!] encode document prefix')
                 encode_time += 1
-
-        return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates
+        inference_time = time.time() - bt
+        if get_time_cost:
+            return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates, inference_time
+        else:
+            return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates, None
 
     @torch.no_grad()
     def generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
@@ -270,6 +276,8 @@ class Agent:
     @torch.no_grad()
     def get_phrases_fast(self, documents):
         self.model.eval()
+
+
         batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
@@ -282,6 +290,7 @@ class Agent:
 
         begin_rep, end_rep = [], []
         phrase_sources = []
+        phrase_sources_set = set()
         for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
             s_pos, e_pos = [], []
             for i in range(1, l-self.args['left_window_size']):
@@ -289,9 +298,16 @@ class Agent:
                     min(i+self.args['left_window_size'], l-1), 
                     min(i+self.args['right_window_size'], l-1)
                 ):
+                    # item = tuple(doc_id[i:j+1].tolist())
                     s_pos.append(i)
                     e_pos.append(j)
                     phrase_sources.append(doc_id[i:j+1])
+                    # remove the duplication
+                    # if item not in phrase_sources_set:
+                    #     phrase_sources.append(doc_id[i:j+1])
+                    #     phrase_sources_set.add(item)
+                    #     s_pos.append(i)
+                    #     e_pos.append(j)
             s_rep = doc_rep[s_pos, :]
             e_rep = doc_rep[e_pos, :]
             begin_rep.append(s_rep)
@@ -362,11 +378,13 @@ class Agent:
         pbar.update(1)
 
     @torch.no_grad()
-    def gpt2_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0):
+    def gpt2_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
         # maximum 128 tokens
         input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
         input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
         length = len(input_ids[0])
+        use_cache = False if get_time_cost else True
+        bt = time.time()
         if decoding_method == 'nucleus_sampling':
             output = self.model.model.generate(
                 input_ids,
@@ -374,23 +392,25 @@ class Agent:
                 max_length=length+128,
                 top_p=top_p,
                 top_k=0,
-                use_cache=True
+                use_cache=use_cache
             )
         else:
             output = self.model.model.generate(
                 input_ids,
                 max_length=length+128,
-                use_cache=True
+                use_cache=use_cache
             )
+        inference_time = time.time() - bt
         string = self.model.vocab.decode(output[0, length:])
-        return string
+        return string, inference_time
 
     @torch.no_grad()
-    def knnlm_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0):
+    def knnlm_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
         # maximum 128 tokens
         input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
         input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
         length = len(input_ids[0])
+        bt = time.time()
         if decoding_method == 'nucleus_sampling':
             string = self.model.nucleus_sampling(
                 input_ids,
@@ -402,7 +422,7 @@ class Agent:
                 input_ids,
                 max_length=128,
             )
-        return string
+        return string, time.time() - bt
 
     @torch.no_grad()
     def inference_knnlm(self, inf_iter, size=500000):

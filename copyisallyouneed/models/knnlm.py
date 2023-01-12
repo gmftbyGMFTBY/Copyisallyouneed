@@ -19,7 +19,12 @@ class KNNLMBaseline(nn.Module):
 
         if self.args['mode'] == 'test':
             self.searcher = Searcher('IVF10000,PQ16', dimension=768, nprobe=1)
-            self.searcher.load(f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_corpus.ckpt')
+            if self.args['dataset']  == 'wikitext103':
+                self.searcher.load(f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_corpus.ckpt')
+            elif self.args['dataset'] == 'lawmt':
+                self.searcher.load(f'{args["root_dir"]}/data/lawmt_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/lawmt_1024/knnlm/knnlm_corpus.ckpt')
+            else:
+                self.searcher.load(f'{args["root_dir"]}/data/en_wiki_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/en_wiki_1024/knnlm/knnlm_corpus.ckpt')
             # move to the gpu and speedup the searching
             self.searcher.move_to_gpu(0)
 

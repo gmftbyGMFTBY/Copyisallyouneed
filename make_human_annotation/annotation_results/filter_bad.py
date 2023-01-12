@@ -41,7 +41,8 @@ def load_evaluation_file(file_name):
     return results
 
 # root_dir = ['gpt2_nucleus_sampling', 'neurlab_gpt2_nucleus_sampling', 'retro_nucleus_sampling', 'knnlm_nucleus_sampling']
-root_dir = ['en_wiki_gpt2_nucleus_sampling']
+root_dir = ['gpt2_nucleus_sampling']
+# root_dir = ['en_wiki_gpt2_nucleus_sampling']
 
 dataset = [
     load_evaluation_file(f'{root_dir[0]}/copyisallyouneed-gpt2_nucleus_sampling.xls'),

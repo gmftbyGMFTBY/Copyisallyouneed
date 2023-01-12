@@ -39,6 +39,7 @@ test:
     max_gen_len: 128
     dropout: 0.1
     doc_topk: 1024
+    # TODO:previous phrase_topk can be tested
     phrase_topk: 128
     left_window_size: 1
     right_window_size: 8

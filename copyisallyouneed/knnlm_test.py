@@ -25,6 +25,7 @@ def main_generation(**args):
 
     collection = []
     with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+    # with open(f'../data/wikitext103_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -37,11 +38,12 @@ def main_generation(**args):
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
         for prefix, reference in tqdm(texts):
-            text = agent.knnlm_generation(prefix, decoding_method=args['decoding_method'], top_k=-1, top_p=0.95, temp=1.)
+            text, time_cost = agent.knnlm_generation(prefix, decoding_method=args['decoding_method'], top_k=-1, top_p=0.95, temp=1., get_time_cost=True)
             collection.append({
                 'prefix': prefix, 
                 'reference': reference, 
-                'text': text
+                'text': text,
+                'time_cost': time_cost
             })
     return collection
 

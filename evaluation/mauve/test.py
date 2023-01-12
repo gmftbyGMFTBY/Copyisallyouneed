@@ -51,3 +51,4 @@ if __name__ == "__main__":
         featurize_model_name='gpt2-large',
     )
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))
+    # print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset))

@@ -19,8 +19,8 @@
 | knnlm (nucleus sampling p=0.95 full)       | 24.53 | 0.0332 | 0.0062 | 0.0017 | 0.9592 | -4.65  |
 | retro (greedy search)                      | 19.83 | 0.4465 | 0.3963 | 0.366 | 0.2119 | -0.74 |
 | retro (nucleus sampling p=0.95)            | 23.51 | 0.0621 | 0.0193 | 0.0086 | 0.9119 | -3.63 |
-| copyisallyouneed (greedy search)           | 26.01 | 26.01 | 0.2814 | 0.238 | 0.214 | 0.4303 | -1.73 |
-| copyisallyouneed (nucleus sampling p=0.95) | 28.34 | 28.34 | 0.0731 | 0.0266 | 0.0128 | 0.8907 | -2.91 |
+| copyisallyouneed (greedy search)           | 26.01 | 0.2814 | 0.238 | 0.214 | 0.4303 | -1.73 |
+| copyisallyouneed (nucleus sampling p=0.95) | 28.34 | 0.0731 | 0.0266 | 0.0128 | 0.8907 | -2.91 |
 
 
 ## 2. LawMT
@@ -56,5 +56,14 @@
 | retro (nucleus sampling p=0.95)              | 63.78 | 0.0809 | 0.0275 | 0.0136 | 0.8817 | -3.54 |
 | copyisallyouneed (greedy search)             | 58.84 | 0.3611 | 0.3063 | 0.2732 | 0.3221 | -1.65 |
 | copyisallyouneed (nucleus sampling p=0.95)   | 66.98 | 0.1476 | 0.077  | 0.0457 | 0.7508 | -2.58 |
+| copyisallyouneed (wikitext103 index,nucleus sampling p=0.95)   | 69.54 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.1 en_wiki,nucleus sampling p=0.95)   | 71.67 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.2 en_wiki,nucleus sampling p=0.95)   | 72.15 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.3 en_wiki,nucleus sampling p=0.95)   | 72.15 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.4 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.5 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.6 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.7 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.8 en_wiki,nucleus sampling p=0.95)   | 70.19 |  |   |  |  |  |
 
 

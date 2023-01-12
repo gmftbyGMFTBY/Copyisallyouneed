@@ -66,7 +66,7 @@ class Retriever:
         self.max_length = max_length
         self.base_data, keys = load_base_data(path)
         # append the wikitext103 into the en-wiki index
-        self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
+        # self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
 
     def search(self, text_list, pool_size):
         batch = self.tokenizer.batch_encode_plus(text_list, padding=True, return_tensors='pt', max_length=self.max_length, truncation=True)

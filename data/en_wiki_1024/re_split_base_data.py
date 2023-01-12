@@ -24,6 +24,7 @@ with open('base_data.txt') as f:
                 counter += 1
             else:
                 cache.extend(tokens)
+        ipdb.set_trace()
         if len(cache) > 0:
             new_datasets.append((' '.join(cache), f'{idx},{counter}'))
         idx += 1

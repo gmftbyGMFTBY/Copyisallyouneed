@@ -1,0 +1,1 @@
+Results for raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.1_nprobe_10.json MAUVE: 0.7167179324842742 Dataset size 500

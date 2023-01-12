@@ -15,7 +15,7 @@ def build_index(index_type, root_dir):
     for idx in range(210):
         try:
             embed, text = torch.load(f'{root_dir}/inference_{idx}.pt')
-            print(f'[!] load {root_dir}/inference_{idx}.pt')
+            print(f'[!] load {root_dir}/inference_0_{idx}.pt')
             current_num += len(embed)
         except Exception as error:
             print(error)
@@ -33,6 +33,9 @@ def build_index(index_type, root_dir):
 if __name__ == "__main__":
     # IVF100000,PQ16 for wikitext103 
     # build_index('IVF100000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/wikitext103_1024/knnlm')
+    
+    # IVF100000,PQ16 for lawmt
+    build_index('IVF10000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/lawmt_1024/knnlm')
 
     # IVF100000,PQ16 for en-wiki (3B tokens)
-    build_index('IVF2000000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/{args["dataset"]}_1024/knnlm')
+    # build_index('IVF2000000,PQ16', f'/apdcephfs/share_916081/johntianlan/copyisallyouneed/data/{args["dataset"]}_1024/knnlm')

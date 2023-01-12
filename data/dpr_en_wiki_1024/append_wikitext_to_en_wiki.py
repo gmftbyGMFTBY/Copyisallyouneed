@@ -4,8 +4,10 @@ from utils import *
 from tqdm import tqdm
 import numpy as np
 
+split_rate = 1.0
+
 en_wiki_searcher = Searcher('Flat', dimension=768, nprobe=1)
-en_wiki_searcher.load(f'original_dpr_checkpoint/dpr_faiss.ckpt', 'original_dpr_checkpoint/dpr_corpus.ckpt')
+en_wiki_searcher.load(f'subindex/dpr_faiss_{split_rate}.ckpt', f'subindex/dpr_corpus_{split_rate}.ckpt')
 
 embds, texts = [], []
 current_num = 0
@@ -27,7 +29,7 @@ for i in tqdm(range(8)):
 embds = np.concatenate(embds) 
 en_wiki_searcher.add(embds, texts)
 print(f'[!] add the wikitext-103 index over')
-en_wiki_searcher.save('dpr_faiss.ckpt', 'dpr_corpus.ckpt')
+en_wiki_searcher.save(f'subindex_added/dpr_faiss_{split_rate}.ckpt', f'subindex_added/dpr_corpus_{split_rate}.ckpt')
 print(f'[!] save faiss index over')
 
 
