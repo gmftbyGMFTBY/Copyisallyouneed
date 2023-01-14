@@ -47,7 +47,7 @@ def inference_one_batch(text_list):
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
         embeddings = model(input_ids=input_ids, attention_mask=mask).pooler_output
-        embeddings = F.normalize(embeddings)
+        # embeddings = F.normalize(embeddings)
     return embeddings.cpu() 
 
 def inference(**args):

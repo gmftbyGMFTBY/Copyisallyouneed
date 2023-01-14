@@ -117,6 +117,23 @@ class Agent:
         print(f'[!] save model into {path}')
 
     @torch.no_grad()
+    def debug_generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
+        '''caculate the average similarity between the prefix and the documents, check whether more documents from en-wiki are beneficial'''
+        self.model.eval()
+        documents = retriever.search([text], self.args['doc_topk'])[0]
+        ipdb.set_trace()
+
+        batch = retriever.tokenizer.batch_encode_plus([text] + documents, padding=True, return_tensors='pt', max_length=retriever.max_length, truncation=True)
+        input_ids = batch['input_ids'].cuda()
+        mask = batch['attention_mask'].cuda()
+        embeddings = retriever.model(input_ids=input_ids, attention_mask=mask).pooler_output    # [B, E]
+        query = embeddings[0, :]    # [E]
+        result = embeddings[1:, :]    # [B-1, E]
+        scores = torch.matmul(query.unsqueeze(0), result.T).squeeze(0)    # [B-1]
+        scores = scores.mean().item()
+        return scores
+
+    @torch.no_grad()
     def generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
         self.model.eval()
         ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
@@ -151,6 +168,33 @@ class Agent:
     def generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
         self.model.eval()
         query = self.model.get_query_rep(ids)
+        score = torch.matmul(query, phrase_reps.t()).squeeze(0)   
+
+        if decoding_method == 'greedy':
+            index = score.max(dim=-1)[1].item()
+            candidate = phrase_sources[index]
+        elif decoding_method == 'nucleus_sampling':
+            score = top_k_top_p_filtering(score, top_k=top_k, top_p=top_p)
+            index = torch.multinomial(F.softmax(score/temp, dim=-1), num_samples=1).item()
+            candidate = phrase_sources[index]
+        else:
+            pass
+
+        # get textual candidate
+        if type(candidate) == torch.Tensor:
+            candidate = ' ' + self.model.bert_tokenizer.decode(candidate).replace('[UNK]', '<|endoftext|>')
+            sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
+        else:
+            sub_ids = [candidate]
+        sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
+        ids = torch.cat((ids, sub_ids), dim=-1)
+        return ids, candidate
+
+    '''
+    @torch.no_grad()
+    def generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
+        self.model.eval()
+        query = self.model.get_query_rep(ids)
         candidates = self.search_from_documents_fast(query, phrase_reps, phrase_sources, search_topk=self.args['phrase_topk'])
         candidates = sorted(candidates, key=lambda x:x[1], reverse=True)
 
@@ -173,6 +217,7 @@ class Agent:
         sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
         ids = torch.cat((ids, sub_ids), dim=-1)
         return ids, candidate
+    '''
 
     @torch.no_grad()
     def generate_one_step(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):

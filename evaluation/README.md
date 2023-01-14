@@ -60,10 +60,20 @@
 | copyisallyouneed (wikitext103 index + 0.1 en_wiki,nucleus sampling p=0.95)   | 71.67 |  |   |  |  |  |
 | copyisallyouneed (wikitext103 index + 0.2 en_wiki,nucleus sampling p=0.95)   | 72.15 |  |   |  |  |  |
 | copyisallyouneed (wikitext103 index + 0.3 en_wiki,nucleus sampling p=0.95)   | 72.15 |  |   |  |  |  |
-| copyisallyouneed (wikitext103 index + 0.4 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
-| copyisallyouneed (wikitext103 index + 0.5 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
-| copyisallyouneed (wikitext103 index + 0.6 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
-| copyisallyouneed (wikitext103 index + 0.7 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
-| copyisallyouneed (wikitext103 index + 0.8 en_wiki,nucleus sampling p=0.95)   | 70.19 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.4 en_wiki,nucleus sampling p=0.95)   | 67.76 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.5 en_wiki,nucleus sampling p=0.95)   | 67.76 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.6 en_wiki,nucleus sampling p=0.95)   | 68.66 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.7 en_wiki,nucleus sampling p=0.95)   | 76.06 |  |   |  |  |  |
+| copyisallyouneed (wikitext103 index + 0.8 en_wiki,nucleus sampling p=0.95)   |  |  |   |  |  |  |
 
+
+gpt2-fine-tuned: 0.6684
+0.0: 0.6738
+0.1: 0.6870
+0.3: 0.6746
+0.4: 0.6865
+0.6: 0.6959
+0.7: 0.7252
+0.9: 0.6662
+1.0: 0.6662
 

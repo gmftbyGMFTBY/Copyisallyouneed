@@ -7,4 +7,4 @@ CUDA_VISIBLE_DEVICES=$cuda python -m torch.distributed.launch --nproc_per_node=$
     --batch_size 512 \
     --cut_size 500000
 
-CUDA_VISIBLE_DEVICES=0 python build_index.py
+# CUDA_VISIBLE_DEVICES=0 python build_index.py

@@ -91,13 +91,20 @@ CUDA_VISIBLE_DEVICES=6 python mauve/test_roberta_v2.py --device 6 --test_path ra
 CUDA_VISIBLE_DEVICES=7 python mauve/test_roberta_v2.py --device 7 --test_path raw_files/en_wiki_knnlm_result_nucleus_sampling_full.json &
 COMMENT
 
+# python $evaluate_file_name --device 2 --test_path raw_files/en_wiki_gpt2_result_nucleus_sampling.json &
+# python $evaluate_file_name --device 2 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.1_nprobe_10.json &
 
-python $evaluate_file_name --device 0 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.1_nprobe_10.json &
-python $evaluate_file_name --device 1 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.2_nprobe_10.json &
-python $evaluate_file_name --device 6 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.3_nprobe_10.json &
-python $evaluate_file_name --device 7 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_1.0_nprobe_10.json &
-# python $evaluate_file_name --device 2 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.4.json &
-# python $evaluate_file_name --device 2 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.5.json &
-# python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.6.json &
-# python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.7.json &
-# python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.8.json &
+python $evaluate_file_name --device 2 --test_path raw_files/en_wiki_gpt2_result_nucleus_sampling.json &
+python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.0_nprobe_10.json &
+exit
+
+python $evaluate_file_name --device 2 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.1_nprobe_10.json
+# python $evaluate_file_name --device 1 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.2_nprobe_10.json &
+python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.3_nprobe_10.json &
+python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.4_nprobe_10.json &
+# python $evaluate_file_name --device 1 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.5_nprobe_10.json &
+python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.6_nprobe_10.json &
+python $evaluate_file_name --device 3 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.7_nprobe_10.json &
+# python $evaluate_file_name --device 4 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.8_nprobe_10.json &
+python $evaluate_file_name --device 5 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.9_nprobe_10.json &
+python $evaluate_file_name --device 3 --test_path raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_1.0_nprobe_10.json &

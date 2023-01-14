@@ -42,8 +42,6 @@ def main_generation(**args):
                 texts.append((prefix, reference))
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
-        # texts = texts[:100]
-
         for prefix, reference in tqdm(texts):
             text, candidates, time_cost = agent.generate_one_sample(prefix, retriever, decoding_method=args["decoding_method"], top_k=0, top_p=0.95, temp=1., get_time_cost=True)
             collection.append({
@@ -64,5 +62,5 @@ if __name__ == "__main__":
     # with open('debug_test_generation_0.98_en_wiki.json', 'w') as f:
     # with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext.json', 'w') as f:
     split_rate = args['split_rate']
-    with open(f'raw_files/{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_index_on_en_wiki_testset_{split_rate}_nprobe_10.json', 'w') as f:
+    with open(f'raw_files/{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_index_on_wikitext103_testset_{split_rate}_nprobe_10.json', 'w') as f:
         json.dump(result, f, indent=4)

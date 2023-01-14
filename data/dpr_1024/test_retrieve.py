@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import nltk
 import pickle
 import ipdb
@@ -73,6 +74,7 @@ class Retriever:
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
         embeddings = self.model(input_ids=input_ids, attention_mask=mask).pooler_output
+        embeddings = F.normalize(embeddings)
         embeddings = embeddings.cpu().numpy()
         result, _ = self.searcher._search(embeddings, topk=pool_size)
         result = [[self.base_data[j].replace('<|endoftext|>', '[UNK]') for j in i] for i in result]

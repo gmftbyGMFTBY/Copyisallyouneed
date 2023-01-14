@@ -1,4 +1,5 @@
 from tqdm import tqdm
+import numpy as np
 from torch.cuda.amp import autocast
 import ipdb
 import mauve
@@ -25,10 +26,12 @@ def load_result(path):
 
             reference_ids = vocab.encode(reference, add_special_tokens=False)
             result_ids = vocab.encode(result, add_special_tokens=False)
+
             # min_length = min(len(reference_ids), len(result_ids))
             # reference_ids, result_ids = reference_ids[:min_length], result_ids[:min_length]
             # reference = vocab.decode(reference_ids)
             # result = vocab.decode(result_ids)
+
             reference = prefix + ' ' + reference
             result = prefix + ' ' + result
             if len(reference_ids) > 0:
@@ -40,15 +43,19 @@ if __name__ == "__main__":
     args = vars(parse_config())
     vocab = AutoTokenizer.from_pretrained('gpt2-large')
     dataset = load_result(args["test_path"])
-    out = mauve.compute_mauve(
-        p_text=[i[0] for i in dataset], 
-        q_text=[i[1] for i in dataset], 
-        device_id=args['device'], 
-        max_text_length=512, 
-        verbose=False, 
-        # 2 for wikitext and lawmt; 2 and 3 and 4 for en-wiki; 2 for lawmt
-        mauve_scaling_factor=2.0, 
-        featurize_model_name='gpt2-large',
-    )
-    print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))
-    # print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset))
+    scores = []
+    for seed in tqdm(range(1)):
+        out = mauve.compute_mauve(
+            p_text=[i[0] for i in dataset], 
+            q_text=[i[1] for i in dataset], 
+            device_id=args['device'], 
+            max_text_length=512, 
+            verbose=False, 
+            mauve_scaling_factor=2.0, 
+            featurize_model_name='gpt2-xl',
+            seed=seed
+        )
+        scores.append(out.mauve)
+    scores = np.mean(scores)
+    print('Results for', args['test_path'], 'MAUVE:', scores, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))
+    print('Results for', args['test_path'], 'MAUVE:', scores, 'Dataset size', len(dataset))

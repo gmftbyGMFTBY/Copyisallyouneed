@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import nltk
 import pickle
 import ipdb
@@ -64,12 +65,13 @@ class Retriever:
         if 0 < split_rate <= 1:
             self.searcher.load(f'{root_dir}/dpr_faiss_{split_rate}.ckpt', f'{root_dir}/dpr_corpus_{split_rate}.ckpt')
         else:
-            self.searcher.load(f'{root_dir}/dpr_faiss.ckpt', f'{root_dir}/dpr_corpus.ckpt')
+            self.searcher.load(f'{root_dir}/dpr_faiss_0.0.ckpt', f'{root_dir}/dpr_corpus_0.0.ckpt')
         self.searcher.move_to_gpu(device=local_rank)
         self.max_length = max_length
         self.base_data, keys = load_base_data(path)
         # append the wikitext103 into the en-wiki index
-        self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
+        if 0 < split_rate <= 1:
+            self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
         print(f'[!] get {self.searcher.searcher.ntotal} samples in the index')
         self.searcher.searcher.nprobe = nprobe
         print(f'[!!!!!!] the nprobe of FAISS index is', self.searcher.searcher.nprobe)
@@ -79,6 +81,7 @@ class Retriever:
         input_ids = batch['input_ids'].cuda()
         mask = batch['attention_mask'].cuda()
         embeddings = self.model(input_ids=input_ids, attention_mask=mask).pooler_output
+        embeddings = F.normalize(embeddings)
         embeddings = embeddings.cpu().numpy()
         result, _ = self.searcher._search(embeddings, topk=pool_size)
         result = [[self.base_data[j].replace('<|endoftext|>', '[UNK]') for j in i] for i in result]
