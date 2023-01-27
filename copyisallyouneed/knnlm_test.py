@@ -21,11 +21,11 @@ def main_generation(**args):
     agent = load_model(args)
     # knnlm also load the best gpt2 checkpoint
     agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
-    print(f'[!] init model over')
+    print(f'[!] init model over, knnlm with lambda {args["lambda"]}')
 
     collection = []
-    with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
-    # with open(f'../data/wikitext103_1024/test.txt') as f:
+    # with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+    with open(f'../data/wikitext103_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -37,6 +37,8 @@ def main_generation(**args):
                 texts.append((prefix, reference))
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
+        texts = texts[:100]
+
         for prefix, reference in tqdm(texts):
             text, time_cost = agent.knnlm_generation(prefix, decoding_method=args['decoding_method'], top_k=-1, top_p=0.95, temp=1., get_time_cost=True)
             collection.append({
@@ -45,10 +47,10 @@ def main_generation(**args):
                 'text': text,
                 'time_cost': time_cost
             })
-    return collection
+    return collection, args
 
 if __name__ == "__main__":
     args = vars(parser_args())
-    result = main_generation(**args)
-    with open(f'raw_files/{args["dataset"]}_knnlm_result_{args["decoding_method"]}_full.json', 'w') as f:
+    result, args = main_generation(**args)
+    with open(f'raw_files/random_runs_lawmt/{args["dataset"]}_knnlm_result_{args["decoding_method"]}_full_{args["lambda"]}_{args["alpha"]}.json', 'w') as f:
         json.dump(result, f, indent=4)

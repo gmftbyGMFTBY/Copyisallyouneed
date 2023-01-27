@@ -1,1 +1,1 @@
-Results for raw_files/wikitext103_knnlm_result_greedy_full.json Average Time Cost: 10.3635
+Results for raw_files/wikitext103_knnlm_result_greedy_full.json MAUVE: 0.232081876369234 Dataset size 1785

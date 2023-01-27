@@ -117,34 +117,119 @@ class Agent:
         print(f'[!] save model into {path}')
 
     @torch.no_grad()
-    def debug_generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
-        '''caculate the average similarity between the prefix and the documents, check whether more documents from en-wiki are beneficial'''
+    def debug_generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
         self.model.eval()
-        documents = retriever.search([text], self.args['doc_topk'])[0]
-        ipdb.set_trace()
+        query = self.model.get_query_rep(ids)
+        score = torch.matmul(query, phrase_reps.t()).squeeze(0)   
 
-        batch = retriever.tokenizer.batch_encode_plus([text] + documents, padding=True, return_tensors='pt', max_length=retriever.max_length, truncation=True)
-        input_ids = batch['input_ids'].cuda()
-        mask = batch['attention_mask'].cuda()
-        embeddings = retriever.model(input_ids=input_ids, attention_mask=mask).pooler_output    # [B, E]
-        query = embeddings[0, :]    # [E]
-        result = embeddings[1:, :]    # [B-1, E]
-        scores = torch.matmul(query.unsqueeze(0), result.T).squeeze(0)    # [B-1]
-        scores = scores.mean().item()
-        return scores
+        if decoding_method == 'greedy':
+            index = score.max(dim=-1)[1].item()
+            candidate = phrase_sources[index]
+        elif decoding_method == 'nucleus_sampling':
+            score = top_k_top_p_filtering(score, top_k=top_k, top_p=top_p)
+            index = torch.multinomial(F.softmax(score/temp, dim=-1), num_samples=1).item()
+            candidate = phrase_sources[index]
+            if type(candidate) == list:
+                candidate_string = self.model.bert_tokenizer.decode(candidate)
+            else:
+                candidate_string = self.model.tokenizer.decode(candidate)
+
+            scores, topk_index = F.softmax(score, dim=-1).topk(self.args['phrase_topk'], dim=-1)
+            candidates = [self.model.bert_tokenizer.decode(phrase_sources[idx]) if type(phrase_sources[idx]) == list else self.model.tokenizer.decode(phrase_sources[idx]) for idx in topk_index]
+            scores = scores.tolist()
+            print(f'[!] current prefix:')
+            print(self.model.tokenizer.decode(ids[0]))
+            ipdb.set_trace()
+        else:
+            pass
+
+        # get textual candidate
+        if type(candidate) == list:
+            candidate = ' ' + self.model.bert_tokenizer.decode(candidate).replace('[UNK]', '<|endoftext|>')
+            sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
+        else:
+            sub_ids = [candidate]
+        sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
+        ids = torch.cat((ids, sub_ids), dim=-1)
+        return ids, candidate
+
+    @torch.no_grad()
+    def debug_generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
+        self.model.eval()
+        ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
+        prefix_length = len(ids[0])
+        documents = retriever.search([text], self.args['doc_topk'])[0]
+        # add the prefix
+        # documents = [text] + documents
+        phrase_reps, phrase_sources = self.get_phrases_fast(documents)
+        candidates = []
+        encode_time = 0
+        bt = time.time()
+        while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
+            ids, candidate = self.debug_generate_one_step_fast(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
+            candidates.append(candidate)
+            # encode the document prefix
+            if len(ids[0]) > 32 and encode_time == 0:
+                prefix_phrase_reps, prefix_phrase_sources = self.get_prefix_phrases_fast([self.model.tokenizer.decode(ids[0])])
+                phrase_reps = torch.cat([phrase_reps, prefix_phrase_reps], dim=0)
+                phrase_sources.extend(prefix_phrase_sources)
+                encode_time += 1
+        inference_time = time.time() - bt
+        if get_time_cost:
+            return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates, inference_time
+        else:
+            return self.model.tokenizer.decode(ids[0, prefix_length:]), candidates, None
+
+    @torch.no_grad()
+    def generate_multiple_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False, random_seeds=[], reference=None):
+        '''generate multiple samples by using the same set of phrases with differnt random seed'''
+        self.model.eval()
+        assert decoding_method == 'nucleus_sampling'
+        sample_num = len(random_seeds)
+        documents = retriever.search([text], self.args['doc_topk'])[0]
+        phrase_reps, phrase_sources = self.get_phrases_fast(documents)
+        collections = {s: None for s in random_seeds}
+            
+        ids_original = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
+        prefix_length = len(ids_original[0])
+        for i in range(sample_num):
+            ids = ids_original.clone()
+
+            torch.manual_seed(random_seeds[i])
+            torch.cuda.manual_seed_all(random_seeds[i])
+            candidates = []
+            encode_time = 0
+
+            bt = time.time()
+            while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
+                ids, candidate = self.generate_one_step_fast(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
+                candidates.append(candidate)
+                # encode the document prefix
+                if len(ids[0]) > 32 and encode_time == 0:
+                    prefix_phrase_reps, prefix_phrase_sources = self.get_prefix_phrases_fast([self.model.tokenizer.decode(ids[0])])
+                    phrase_reps = torch.cat([phrase_reps, prefix_phrase_reps], dim=0)
+                    phrase_sources.extend(prefix_phrase_sources)
+                    encode_time += 1
+            inference_time = time.time() - bt
+            collections[random_seeds[i]] = {
+                'prefix': text,
+                'reference': reference,
+                'text': self.model.tokenizer.decode(ids[0, prefix_length:]),
+                'phrases': candidates
+            }
+            if get_time_cost:
+                collections[random_seeds[i]]['time_cost'] = inference_time
+        return collections
 
     @torch.no_grad()
     def generate_one_sample(self, text, retriever, decoding_method='greedy', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
         self.model.eval()
         ids = self.model.tokenizer(text, return_tensors='pt', add_special_tokens=False)['input_ids'].cuda()
         prefix_length = len(ids[0])
-        # retrieve and encode the documents
-
         documents = retriever.search([text], self.args['doc_topk'])[0]
         # add the prefix
         # documents = [text] + documents
         phrase_reps, phrase_sources = self.get_phrases_fast(documents)
-        print(f'[!] collect {len(phrase_sources)} phrases')
         candidates = []
         encode_time = 0
         bt = time.time()
@@ -156,7 +241,6 @@ class Agent:
                 prefix_phrase_reps, prefix_phrase_sources = self.get_prefix_phrases_fast([self.model.tokenizer.decode(ids[0])])
                 phrase_reps = torch.cat([phrase_reps, prefix_phrase_reps], dim=0)
                 phrase_sources.extend(prefix_phrase_sources)
-                print(f'[!] encode document prefix')
                 encode_time += 1
         inference_time = time.time() - bt
         if get_time_cost:
@@ -181,7 +265,7 @@ class Agent:
             pass
 
         # get textual candidate
-        if type(candidate) == torch.Tensor:
+        if type(candidate) == list:
             candidate = ' ' + self.model.bert_tokenizer.decode(candidate).replace('[UNK]', '<|endoftext|>')
             sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
         else:
@@ -189,183 +273,60 @@ class Agent:
         sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
         ids = torch.cat((ids, sub_ids), dim=-1)
         return ids, candidate
-
-    '''
-    @torch.no_grad()
-    def generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
-        self.model.eval()
-        query = self.model.get_query_rep(ids)
-        candidates = self.search_from_documents_fast(query, phrase_reps, phrase_sources, search_topk=self.args['phrase_topk'])
-        candidates = sorted(candidates, key=lambda x:x[1], reverse=True)
-
-        if decoding_method == 'greedy':
-            candidate, _ = candidates[0]
-        elif decoding_method == 'nucleus_sampling':
-            scores = torch.tensor([j for i, j in candidates])
-            scores = top_k_top_p_filtering(scores, top_k=top_k, top_p=top_p)
-            index = torch.multinomial(F.softmax(scores / temp, dim=-1), num_samples=1).item()
-            candidate, _ = candidates[index]
-        else:
-            pass
-
-        # get textual candidate
-        if type(candidate) == torch.Tensor:
-            candidate = ' ' + self.model.bert_tokenizer.decode(candidate).replace('[UNK]', '<|endoftext|>')
-            sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
-        else:
-            sub_ids = [candidate]
-        sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
-        ids = torch.cat((ids, sub_ids), dim=-1)
-        return ids, candidate
-    '''
-
-    @torch.no_grad()
-    def generate_one_step(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
-        self.model.eval()
-        query = self.model.get_query_rep(ids)
-        candidates = self.search_from_documents(query, phrase_reps, phrase_sources, search_topk=self.args['phrase_topk'])
-        candidates = [i for i in candidates if '<|endoftext|>' not in i[0]]
-        candidates = sorted(candidates, key=lambda x:x[1], reverse=True)
-
-        if decoding_method == 'greedy':
-            candidate, _ = candidates[0]
-        elif decoding_method == 'nucleus_sampling':
-            scores = torch.tensor([j for i, j in candidates])
-            scores = top_k_top_p_filtering(scores, top_k=top_k, top_p=top_p)
-            index = torch.multinomial(F.softmax(scores / temp, dim=-1), num_samples=1).item()
-            candidate, _ = candidates[index]
-        else:
-            pass
-        sub_ids = self.model.tokenizer.encode(candidate, add_special_tokens=False)
-        sub_ids = torch.LongTensor(sub_ids).unsqueeze(0).cuda()
-        ids = torch.cat((ids, sub_ids), dim=-1)
-        return ids, candidate
-
-    @torch.no_grad()
-    def get_phrases(self, documents):
-        self.model.eval()
-        batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
-        input_ids = batch['input_ids'].cuda()
-        mask = batch['attention_mask'].cuda()
-
-        # replace the [CLS] with [PREFIX] for the prefix text (document)
-        input_ids[0, 0] = self.model.prefix_token_id
-
-        vl = mask.sum(dim=-1)
-        hidden_states = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
-
-        begin_rep, end_rep = [], []
-        phrase_sources = []
-        for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
-            s_pos, e_pos = [], []
-            for i in range(1, l-self.args['left_window_size']):
-                for j in range(
-                    min(i+self.args['left_window_size'], l-1), 
-                    min(i+self.args['right_window_size'], l-1)
-                ):
-                    string = self.model.bert_tokenizer.decode(doc_id[j])
-                    
-                    if string.startswith('##'):
-                        # remove the last and append the new
-                        if s_pos and e_pos:
-                            s_pos.pop()
-                            e_pos.pop()
-                    s_pos.append(i)
-                    e_pos.append(j)
-                last_index = min(i+self.args['right_window_size'], l-1)
-                string = self.model.bert_tokenizer.decode(doc_id[last_index])
-                if string.startswith('##'):
-                    if s_pos and e_pos:
-                       s_pos.pop()
-                       e_pos.pop()
-            for s, e in zip(s_pos, e_pos):
-                string = ' ' + self.model.bert_tokenizer.decode(doc_id[s:e+1]).replace('[UNK]', '<|endoftext|>')
-                phrase_sources.append((s, e, string))
-            s_rep = doc_rep[s_pos, :]
-            e_rep = doc_rep[e_pos, :]
-            begin_rep.append(s_rep)
-            end_rep.append(e_rep)
-        begin_rep = torch.cat(begin_rep)
-        end_rep = torch.cat(end_rep)
-        phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
-        phrase_reps = torch.cat([
-            phrase_reps,
-            self.model.token_embeddings
-        ], dim=0)
-        phrase_sources.extend([
-            (
-                -1, 
-                -1, 
-                ' ' + self.model.tokenizer.decode(idx) if self.model.tokenizer.decode(idx) in ['.', ',', '!', ';', ':', '"', "'", '?', '#', '$', '%', '/', '&', '*', '(', ')', '[', ']', '{', '}', '|'] else self.model.tokenizer.decode(idx),
-            ) for idx in range(len(self.model.tokenizer))
-        ])
-        print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
-        return phrase_reps, phrase_sources
-
-    def search_from_documents(self, query, phrase_reps, phrase_source, search_topk=5):
-        dp = torch.matmul(query, phrase_reps.t()).squeeze(0)   
-        search_num = min(search_topk, len(phrase_reps))
-        dis, topk = dp.topk(search_num, dim=-1)    # [K]
-        dis = dis.tolist()
-        candidates = [(phrase_source[i][-1], round(d, 4)) for i, d in zip(topk, dis)]
-        return candidates
-
-    def search_from_documents_fast(self, query, phrase_reps, phrase_source, search_topk=5):
-        dp = torch.matmul(query, phrase_reps.t()).squeeze(0)   
-        search_num = min(search_topk, len(phrase_reps))
-        dis, topk = dp.topk(search_num, dim=-1)    # [K]
-        dis = dis.tolist()
-        candidates = [(phrase_source[i], round(d, 4)) for i, d in zip(topk, dis)]
-        return candidates
 
     @torch.no_grad()
     def get_phrases_fast(self, documents):
         self.model.eval()
 
-
-        batch = self.model.bert_tokenizer.batch_encode_plus(documents, padding=True, return_tensors='pt', max_length=200, truncation=True)
-        input_ids = batch['input_ids'].cuda()
-        mask = batch['attention_mask'].cuda()
-
-        # replace the [CLS] with [PREFIX] for the prefix text (document)
-        input_ids[0, 0] = self.model.prefix_token_id
-
-        vl = mask.sum(dim=-1)
-        hidden_states = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
+        # feed the 1024 maybe to big, leading to OOM
+        inner_batch_size = 256
+        begin_hidden_states, end_hidden_states, vl, doc_ids = [], [], [], []
+        for idx in range(0, len(documents), inner_batch_size):
+            s_index, e_index = idx, idx + inner_batch_size
+            batch_doc = documents[s_index:e_index]
+            batch = self.model.bert_tokenizer.batch_encode_plus(batch_doc, padding=True, return_tensors='pt', max_length=200, truncation=True)
+            input_ids = batch['input_ids'].cuda()
+            mask = batch['attention_mask'].cuda()
+            hs = self.model.phrase_encoder(input_ids, mask, output_hidden_states=True)['hidden_states'][-1]    # [B, S, E]
+            bhs = self.model.s_proj(hs)
+            ehs = self.model.e_proj(hs)
+            begin_hidden_states.extend(bhs)
+            end_hidden_states.extend(ehs)
+            vl.extend(mask.sum(dim=-1))
+            doc_ids.extend(input_ids.tolist())
+        assert len(end_hidden_states) == len(begin_hidden_states) == len(documents) == len(vl) == len(doc_ids)
 
         begin_rep, end_rep = [], []
         phrase_sources = []
         phrase_sources_set = set()
-        for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
+        # remove duplication in the phrase tables
+        for begin_doc_rep, end_doc_rep, l, doc_id in zip(begin_hidden_states, end_hidden_states, vl, doc_ids):
             s_pos, e_pos = [], []
-            for i in range(1, l-self.args['left_window_size']):
+            # ignore the [CLS] token
+            for i in range(1, l-self.args['left_window_size']-1):
+                # ignore the [SEP] token
                 for j in range(
-                    min(i+self.args['left_window_size'], l-1), 
-                    min(i+self.args['right_window_size'], l-1)
+                    min(i+self.args['left_window_size'], l-2), 
+                    min(i+self.args['right_window_size'], l-2)
                 ):
-                    # item = tuple(doc_id[i:j+1].tolist())
-                    s_pos.append(i)
-                    e_pos.append(j)
-                    phrase_sources.append(doc_id[i:j+1])
-                    # remove the duplication
-                    # if item not in phrase_sources_set:
-                    #     phrase_sources.append(doc_id[i:j+1])
-                    #     phrase_sources_set.add(item)
-                    #     s_pos.append(i)
-                    #     e_pos.append(j)
-            s_rep = doc_rep[s_pos, :]
-            e_rep = doc_rep[e_pos, :]
+                    phrase = doc_id[i:j+1]
+                    if tuple(phrase) not in phrase_sources_set:
+                        s_pos.append(i)
+                        e_pos.append(j)
+                        phrase_sources.append(phrase)
+                        phrase_sources_set.add(tuple(phrase))
+            s_rep = begin_doc_rep[s_pos, :]
+            e_rep = end_doc_rep[e_pos, :]
             begin_rep.append(s_rep)
             end_rep.append(e_rep)
         begin_rep = torch.cat(begin_rep)
         end_rep = torch.cat(end_rep)
-        phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
+        phrase_reps = torch.cat([begin_rep, end_rep], dim=-1)
         phrase_reps = torch.cat([
             phrase_reps,
             self.model.token_embeddings
         ], dim=0)
         phrase_sources.extend([idx for idx in range(len(self.model.tokenizer))])
-        print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
         return phrase_reps, phrase_sources
     
     @torch.no_grad()
@@ -383,7 +344,8 @@ class Agent:
 
         begin_rep, end_rep = [], []
         phrase_sources = []
-        for doc_rep, l, doc_id in tqdm(zip(hidden_states, vl, input_ids)):
+        input_ids = input_ids.tolist()
+        for doc_rep, l, doc_id in zip(hidden_states, vl, input_ids):
             s_pos, e_pos = [], []
             for i in range(1, l-self.args['left_window_size']):
                 for j in range(
@@ -400,7 +362,6 @@ class Agent:
         begin_rep = torch.cat(begin_rep)
         end_rep = torch.cat(end_rep)
         phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
-        print(f'[!] add vocabulary and collect {len(phrase_reps)} phrases')
         return phrase_reps, phrase_sources
 
     def train_model_gpt2(self, batch, recoder=None, current_step=0, pbar=None):
@@ -494,16 +455,18 @@ class Agent:
             )
 
     @torch.no_grad()
-    def test_model_ppl(self, test_iter, max_counter=100):
+    def test_model_ppl(self, test_iter, max_counter=10000):
         ppls = []
         counter = 0
-        for batch in tqdm(test_iter):
+        pbar = tqdm(test_iter)
+        for batch in pbar:
             ppl = self.model.calculate_ppl(batch)
             ppls.append(ppl)
             counter += 1
             if counter >= max_counter:
                 break
-        ppl = np.mean(ppls)
+            ppl = np.mean(ppls)
+            pbar.set_description(f'[!] ppl: {round(ppl, 4)}')
         print('Perplexity:', round(ppl, 4))
 
 

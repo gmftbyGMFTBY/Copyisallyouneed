@@ -28,8 +28,11 @@ def build_index(index_type, max_num):
                 break
         if len(texts) >= max_num:
             break
-
     embds = np.concatenate(embds) 
+    if len(texts) > max_num:
+        texts = texts[:max_num]
+        embds = embds[:max_num]
+
     searcher = Searcher(index_type, dimension=768)
     searcher._build(embds, texts, speedup=True)
     print(f'[!] train the searcher over')
@@ -49,17 +52,19 @@ def build_index(index_type, max_num):
                 except Exception as error:
                     print(error)
                     break
-                searcher.add(embed.numpy(), text)
+                delta_num = max_num - searcher.searcher.ntotal
+                text = text[:delta_num]
+                embed = embed.numpy()[:delta_num]
+                searcher.add(embed, text)
 
-    searcher.save(f'dpr_faiss_{split_rate}.ckpt', f'dpr_corpus_{split_rate}.ckpt')
+    searcher.save(f'subindex/dpr_faiss_{split_rate}.ckpt', f'subindex/dpr_corpus_{split_rate}.ckpt')
     print(f'[!] save faiss index over')
 
 if __name__ == "__main__":
-    split_rate = 1.0
+    split_rate = 0.03
     print(f'[!] build index with {split_rate} rate')
-    num = split_rate * 21000000
-    # 0.1:
+    num = int(split_rate * 21000000)
+    # en-wiki subindex
     build_index('IVF10000,PQ16', num)
-    
     
     # build_index('IVF100000,PQ16', num)

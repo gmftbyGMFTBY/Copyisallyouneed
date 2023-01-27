@@ -58,7 +58,7 @@ def clean_data(tokens):
 
 class Retriever:
 
-    def __init__(self, path, max_length, root_dir, local_rank):
+    def __init__(self, path, max_length, root_dir, local_rank, nprobe=10):
         self.tokenizer = DPRContextEncoderTokenizer.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
         self.model = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base").cuda()
         self.searcher = Searcher('Flat', dimension=768, nprobe=1)

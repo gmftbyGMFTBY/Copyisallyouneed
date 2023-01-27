@@ -16,7 +16,7 @@ random.seed(0)
 # with open('raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_and_en_wiki_index_on_en_wiki_testset.json') as f:
 # with open('raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_and_en_wiki_index_on_wikitext_testset.json') as f:
 # with open('raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_on_en_wiki_testset_0.8.json') as f:
-with open('raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_1.0_nprobe_10.json') as f:
+with open('raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_wikitext103_testset_1.0_nprobe_10.json') as f:
     copyisallyouneed_result = json.load(f)
 with open(args['baseline_path']) as f:
     gpt2_result = json.load(f)

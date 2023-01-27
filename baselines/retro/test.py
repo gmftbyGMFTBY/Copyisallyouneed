@@ -11,8 +11,8 @@ from retro_pytorch.training import top_p
 from transformers import AutoTokenizer
 
 tokenizer = AutoTokenizer.from_pretrained('bert-base-cased')
-# decoding_method = 'sampling'
-decoding_method = 'greedy'
+decoding_method = 'sampling'
+# decoding_method = 'greedy'
 
 # instantiate RETRO, fit it into the TrainingWrapper with correct settings
 
@@ -33,11 +33,11 @@ wrapper = TrainingWrapper(
     retro = retro,                                 # path to retro instance
     knn = 2,                                       # knn (2 in paper was sufficient)
     chunk_size = 64,                               # chunk size (64 in paper)
-    documents_path = './en_wiki_text_folder',              # path to folder of text
+    documents_path = './wikitext103_text_folder',              # path to folder of text
     glob = '**/*.txt',                             # text glob
-    chunks_memmap_path = './en_wiki_text_folder/train.chunks.dat',     # path to chunks
-    seqs_memmap_path = './en_wiki_text_folder/train.seq.dat',          # path to sequence data
-    doc_ids_memmap_path = './en_wiki_text_folder/train.doc_ids.dat',   # path to document ids per chunk (used for filtering neighbors belonging to same document)
+    chunks_memmap_path = './wikitext103_text_folder/train.chunks.dat',     # path to chunks
+    seqs_memmap_path = './wikitext103_text_folder/train.seq.dat',          # path to sequence data
+    doc_ids_memmap_path = './wikitext103_text_folder/train.doc_ids.dat',   # path to document ids per chunk (used for filtering neighbors belonging to same document)
     max_chunks = 10_000_000,                        # maximum cap to chunks
     max_seqs = 2_000_000,                            # maximum seqs
     knn_extra_neighbors = 100,                     # num extra neighbors to fetch
@@ -64,9 +64,12 @@ gpt2_tokenizer = AutoTokenizer.from_pretrained('gpt2')    #  compatible with the
 # set the maximum sequence length for generation (32 prefix + 128 generation)
 wrapper.max_seq_len = 200
 
-collection = []
-# with open(f'../../data/wikitext103_1024/test.txt') as f:
-with open(f'../../data/en_wiki_1024/test.txt') as f:
+random_seeds = [1.0, 5.0, 10.0, 50.0, 100.0, 500.0, 1000.0, 5000.0, 10000.0, 50000.0]
+assert len(random_seeds) == 10
+
+collection = {i: [] for i in random_seeds}
+with open(f'../../data/wikitext103_1024/test.txt') as f:
+# with open(f'../../data/lawmt_1024/test.txt') as f:
 # with open(f'../../data/en_wiki_1024/test.txt') as f:
     # collect the valid prefixes
     texts = []
@@ -78,21 +81,25 @@ with open(f'../../data/en_wiki_1024/test.txt') as f:
             reference = gpt2_tokenizer.decode(reference)
             texts.append((prefix, reference))
     print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
-    for prefix, reference in tqdm(texts):
-        prompt = torch.LongTensor(tokenizer.encode(prefix, add_special_tokens=False)).unsqueeze(0).cuda()
-        prefix_len = len(tokenizer.decode(prompt[0]))
-        # filter_thres larger than 1, lead to the greedy search
-        bt = time.time()
-        sampled = wrapper.generate(prompt, filter_fn=top_p, filter_thres = filter_thres, temperature = 1.0) # (1, <2049) terminates early if all <eos>
-        time_cost = time.time() - bt
-        rest = tokenizer.decode(sampled[0])
-        text = rest[prefix_len:]
-        collection.append({
-            'prefix': prefix, 
-            'reference': reference, 
-            'text': text, 
-            'time_cost': time_cost
-        })
 
-with open(f'lawmt_retro_result_{decoding_method}.json', 'w') as f:
-    json.dump(collection, f, indent=4)
+    for prefix, reference in tqdm(texts):
+        for seed in random_seeds:
+            prompt = torch.LongTensor(tokenizer.encode(prefix, add_special_tokens=False)).unsqueeze(0).cuda()
+            prefix_len = len(tokenizer.decode(prompt[0]))
+            # filter_thres larger than 1, lead to the greedy search
+            bt = time.time()
+            sampled = wrapper.generate(prompt, filter_fn=top_p, filter_thres = filter_thres, temperature = 1.0) # (1, <2049) terminates early if all <eos>
+            time_cost = time.time() - bt
+            rest = tokenizer.decode(sampled[0])
+            text = rest[prefix_len:]
+            collection[seed].append({
+                'prefix': prefix, 
+                'reference': reference, 
+                'text': text, 
+                'time_cost': time_cost
+            })
+
+for seed in collection:
+    result = collection[seed]
+    with open(f'raw_files/random_runs/wikitext103_retro_result_{decoding_method}_random_seed_{seed}.json', 'w') as f:
+        json.dump(result, f, indent=4)

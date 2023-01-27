@@ -14,7 +14,7 @@ def build_index(index_type, root_dir):
     current_num = 0
     for idx in range(210):
         try:
-            embed, text = torch.load(f'{root_dir}/inference_{idx}.pt')
+            embed, text = torch.load(f'{root_dir}/inference_0_{idx}.pt')
             print(f'[!] load {root_dir}/inference_0_{idx}.pt')
             current_num += len(embed)
         except Exception as error:

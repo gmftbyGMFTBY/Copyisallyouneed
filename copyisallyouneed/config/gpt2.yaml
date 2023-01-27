@@ -10,7 +10,7 @@ pretrained_model:
 # train configuration
 train:
     load_param: true
-    total_step: 50010
+    total_step: 100010
     save_every: 10000
     lr: 0.00005
     grad_clip: 0.1
@@ -24,3 +24,5 @@ test:
     seed: 0
     batch_size: 1
     max_len: 128
+    # for ppl test
+    ppl_max_len: 200

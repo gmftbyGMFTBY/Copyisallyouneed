@@ -21,7 +21,7 @@ def main_generation(**args):
     agent = load_model(args)
     # comment the following line to use neurlab gpt2 wikitext103 fine-tuned version
     # agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
-    agent.load_model(f'{args["root_dir"]}/ckpt/en_wiki/gpt2/best_2003_10000.pt')
+    agent.load_model(f'{args["root_dir"]}/ckpt/en_wiki/gpt2/best_2004_100000.pt')
     # agent.load_model(f'{args["root_dir"]}/ckpt/lawmt/gpt2/best_2003_10000.pt')
     print(f'[!] init model over')
 
@@ -29,7 +29,8 @@ def main_generation(**args):
     torch.cuda.manual_seed_all(1.0)
 
     collection = []
-    with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+    # with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+    with open(f'../data/wikitext103_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -54,7 +55,5 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    # with open(f'raw_files/{args["dataset"]}_neurlab_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
-    # v2 is use tht fine-tuned gpt2 model on en-wiki train set
-    with open(f'raw_files/{args["dataset"]}_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
+    with open(f'raw_files/random_runs_en_wiki_testset/{args["dataset"]}_gpt2_result_{args["decoding_method"]}.json', 'w') as f:
         json.dump(result, f, indent=4)

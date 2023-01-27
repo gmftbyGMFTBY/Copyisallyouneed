@@ -30,29 +30,14 @@ def main_generation(**args):
     torch.cuda.manual_seed_all(1.0)
 
     collection = []
-    # with open(f'../data/{args["dataset"]}_1024/debug_test.txt') as f:
-    # with open(f'../data/wikitext103_1024/test.txt') as f:
-    with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
-        # collect the valid prefixes
+    with open(f'../data/{args["dataset"]}_1024/debug_test.txt') as f:
         texts = []
         for line in tqdm(f.readlines()):
-            ids = agent.model.tokenizer.encode(line, add_special_tokens=False)
-            prefix, reference = ids[:32], ids[32:]
-            if len(prefix) == 32:
-                prefix = agent.model.tokenizer.decode(prefix)
-                reference = agent.model.tokenizer.decode(reference)
-                texts.append((prefix, reference))
-        print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
-        scores = []
+            texts.append(line.strip())
         pbar = tqdm(texts)
-        for prefix, reference in pbar:
-            score = agent.debug_generate_one_sample(prefix, retriever, decoding_method=args["decoding_method"], top_k=0, top_p=0.95, temp=1., get_time_cost=True)
-            scores.append(score)
-            pbar.set_description(f'[!] average score for {args["split_rate"]}: {round(np.mean(scores), 4)}')
-    return round(np.mean(scores), 4)
+        for prefix in pbar:
+            agent.debug_generate_one_sample(prefix, retriever, decoding_method=args["decoding_method"], top_k=0, top_p=0.95, temp=1., get_time_cost=True)
 
 if __name__ == "__main__":
     args = vars(parser_args())
     rest = main_generation(**args)
-    with open(f'debug_{args["split_rate"]}.txt', 'w') as f:
-        f.write(str(rest))

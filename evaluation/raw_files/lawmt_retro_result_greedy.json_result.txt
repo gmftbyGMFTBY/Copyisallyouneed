@@ -1,1 +1,1 @@
-Results for raw_files/lawmt_retro_result_greedy.json MAUVE: 0.18663707493061188 Dataset size 908
+Results for raw_files/lawmt_retro_result_greedy.json MAUVE: 0.18704503606490377 Dataset size 908

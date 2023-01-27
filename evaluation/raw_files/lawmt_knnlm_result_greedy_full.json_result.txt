@@ -1,1 +1,1 @@
-Results for raw_files/lawmt_knnlm_result_greedy_full.json MAUVE: 0.19949424021773265 Dataset size 908
+Results for raw_files/lawmt_knnlm_result_greedy_full.json MAUVE: 0.253833162440537 Dataset size 908

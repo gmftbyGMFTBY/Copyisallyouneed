@@ -4,7 +4,7 @@ from models import *
 from config import *
 import sys
 sys.path.append('../data/')
-from dpr_1024 import Retriever
+from dpr_en_wiki_1024 import Retriever
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
@@ -15,8 +15,8 @@ def parser_args():
     return parser.parse_args()
 
 def main_generation(**args):
-    # retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200, f'../data/dpr_{args["dataset"]}_1024', 0)
-    retriever = Retriever(f'../data/wikitext103_1024/base_data_128.txt', 200, f'../data/dpr_1024', 0)
+    retriever = Retriever(f'../data/{args["dataset"]}_1024/base_data_128.txt', 200, f'../data/dpr_en_wiki_1024/subindex_added', 0, split_rate=1.0, nprobe=10)
+    # retriever = Retriever(f'../data/wikitext103_1024/base_data_128.txt', 200, f'../data/dpr_1024', 0)
     args['mode'] = 'test'
     config = load_config(args)
     args.update(config)
@@ -29,8 +29,8 @@ def main_generation(**args):
 
     collection = []
     # with open(f'../data/{args["dataset"]}_1024/debug_test.txt') as f:
-    # with open(f'../data/wikitext103_1024/test.txt') as f:
-    with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
+    with open(f'../data/wikitext103_1024/test.txt') as f:
+    # with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
         # collect the valid prefixes
         texts = []
         for line in tqdm(f.readlines()):
@@ -56,10 +56,5 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    # with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_and_en_wiki_index_on_wikitext_testset.json', 'w') as f:
-    # with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_and_en_wiki_index_on_en_wiki_testset.json', 'w') as f:
-    # with open('debug_test_generation_0.95_wikitext103_phrase_topk_1024.json', 'w') as f:
-    # with open('debug_test_generation_0.98_en_wiki.json', 'w') as f:
-    # with open(f'{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext.json', 'w') as f:
-    with open(f'raw_files/{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_index_on_wikitext103_testset_0.0_nprobe_10.json', 'w') as f:
+    with open(f'raw_files/random_runs_en_wiki_testset/{args["dataset"]}_copyisallyouneed_result_{args["decoding_method"]}_wikitext_index_on_wikitext103_testset.json', 'w') as f:
         json.dump(result, f, indent=4)

@@ -34,13 +34,16 @@ def load_base_data(path):
     print(f'[!] load {len(datasets)} samples') 
     return datasets, keys 
 
-def append_wikitext_base_data(path, datasets, keys):
+def append_wikitext_base_data(path, datasets, keys, split_rate=0):
     path = path.replace('en_wiki', 'wikitext103')
     with open(path) as f:
         for line in tqdm(f.readlines()):
             items = line.strip().split('\t')
             document = '\t'.join(items[:-1])
-            label = 'wikitext,' + items[-1].strip()
+            if split_rate > 0:
+                label = 'wikitext,' + items[-1].strip()
+            else: 
+                label = items[-1].strip()
             datasets[label] = document
             keys.append(label)
     print(f'[!] load {len(datasets)} samples') 
@@ -70,10 +73,9 @@ class Retriever:
         self.max_length = max_length
         self.base_data, keys = load_base_data(path)
         # append the wikitext103 into the en-wiki index
-        if 0 < split_rate <= 1:
-            self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys)
-        print(f'[!] get {self.searcher.searcher.ntotal} samples in the index')
+        self.base_data, _ = append_wikitext_base_data(path, self.base_data, keys, split_rate=split_rate)
         self.searcher.searcher.nprobe = nprobe
+        print(f'[!] get {self.searcher.searcher.ntotal} samples in the index')
         print(f'[!!!!!!] the nprobe of FAISS index is', self.searcher.searcher.nprobe)
 
     def search(self, text_list, pool_size):

@@ -8,6 +8,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel, AutoTokenizer
 import argparse
+from test_gt import *
 
 def parse_config():
     parser = argparse.ArgumentParser()
@@ -24,8 +25,8 @@ def load_result(path):
             reference = item['reference'].strip()
             result = item['text']
 
-            result = prefix + reference
-            # result = prefix + result
+            # result = prefix + reference
+            result = prefix + result
             dataset.append(result)
     print(f'[!] collect {len(dataset)} samples')
     return dataset
@@ -33,12 +34,5 @@ def load_result(path):
 if __name__ == "__main__":
     args = vars(parse_config())
     dataset = load_result(args['test_path'])
-    ppl = load('perplexity', module_type='metric')
-    results = ppl.compute(
-        predictions=dataset, 
-        model_id='gpt2-large', 
-        batch_size=8, 
-        add_start_token=False, 
-        device='gpu',
-    )
-    print(args['test_path'], results['mean_perplexity'])
+    ppl = calculate_ppl(dataset)
+    print(f'[!] ppl of {args["test_path"]}: {ppl}')

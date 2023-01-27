@@ -1,0 +1,15 @@
+{
+    "Token": "fP4dP31jEgm53c-qZqYd-A",
+    "business_flag": "nlpc",
+    "model_local_file_path": "/dockerdata/johntianlan/sources/Copyisallyouneed/copyisallyouneed",
+    "host_num": 1,
+    "GPUName": "A100",
+    "host_gpu_num": 8,
+    "image_full_name": "mirrors.tencent.com/johntianlan_demo/myredial:latest",
+    "readable_name": "hold for copyisallyouneed",
+    "start_cmd": "python hold.py",
+    "is_elasticity": true,
+    "keep_alive": true,
+    "enable_evicted_pulled_up": true,
+    "exec_start_in_all_mpi_pods": true
+}

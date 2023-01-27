@@ -6,13 +6,17 @@ pretrained_model:
     zh: /apdcephfs/share_916081/johntianlan/gpt2-chinese-cluecorpussmall
 
 # test configuration
+# lambda and alpha hyper-parameters come from retro paper: https://arxiv.org/pdf/2112.04426.pdf
+# lambda=0 and alpha=1.0 will make knn-lm degenerates to gpt2 model
 test:
     seed: 0
     batch_size: 1
     max_len: 512
     search_topk: 1024
     temp: 1.0
-    lambda: 0.25
+    lambda: 0.118
+    alpha: 0.00785
+    ppl_max_len: 200
 
 # infernece
 inference:
@@ -22,3 +26,4 @@ inference:
     index_nprobe: 64
     dimension: 768
     max_len: 256
+    ppl_max_len: 200

@@ -21,10 +21,13 @@ class KNNLMBaseline(nn.Module):
             self.searcher = Searcher('IVF10000,PQ16', dimension=768, nprobe=1)
             if self.args['dataset']  == 'wikitext103':
                 self.searcher.load(f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/wikitext103_1024/knnlm/knnlm_corpus.ckpt')
+                print(f'[!] load wikitext103 knn-lm index')
             elif self.args['dataset'] == 'lawmt':
                 self.searcher.load(f'{args["root_dir"]}/data/lawmt_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/lawmt_1024/knnlm/knnlm_corpus.ckpt')
+                print(f'[!] load lawmt knn-lm index')
             else:
                 self.searcher.load(f'{args["root_dir"]}/data/en_wiki_1024/knnlm/knnlm_faiss.ckpt', f'{args["root_dir"]}/data/en_wiki_1024/knnlm/knnlm_corpus.ckpt')
+                print(f'[!] load en-wiki knn-lm index')
             # move to the gpu and speedup the searching
             self.searcher.move_to_gpu(0)
 
@@ -51,7 +54,7 @@ class KNNLMBaseline(nn.Module):
             )
             cands = torch.LongTensor([[int(i) for i in j] for j in cands]).unsqueeze(-1).cuda()
             dists = torch.tensor(dists).cuda()    # [S, K]
-            dists = F.softmax(-dists, dim=-1).unsqueeze(-1)   # [S, K, 1]
+            dists = F.softmax(-self.args['alpha']*dists, dim=-1).unsqueeze(-1)   # [S, K, 1]
             knn_logits = torch.zeros(sub_seqlen, self.args['search_topk'], len(self.vocab)).cuda()   # [S, K, V]
             knn_logits.scatter_(2, cands, dists)
             knn_logits = knn_logits.sum(dim=1)    # [S, V]
@@ -68,7 +71,7 @@ class KNNLMBaseline(nn.Module):
         cands = torch.LongTensor([int(i) for i in cands[0]]).cuda()
         dists = torch.tensor(dists[0]).cuda()
         knn_logits = torch.zeros(topk, len(self.vocab)).cuda()    # [K, V]
-        knn_logits[range(topk), cands] = F.softmax(-dists, dim=-1)
+        knn_logits[range(topk), cands] = F.softmax(-self.args['alpha']*dists, dim=-1)
         knn_logits = knn_logits.sum(dim=0)    # [V]
         new_logits = self.args['lambda'] * knn_logits + (1 - self.args['lambda']) * F.softmax(logits, dim=-1)
         return new_logits

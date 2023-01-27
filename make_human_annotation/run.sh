@@ -6,11 +6,11 @@
 # baseline_paths=(lawmt_gpt2_result_nucleus_sampling.json)
 # baseline_names=(lawmt_gpt2_nucleus_sampling)
 
-# baseline_paths=(en_wiki_gpt2_result_nucleus_sampling.json)
-# baseline_names=(en_wiki_gpt2_nucleus_sampling_on_en_wiki)
+baseline_paths=(en_wiki_gpt2_result_nucleus_sampling.json)
+baseline_names=(en_wiki_gpt2_nucleus_sampling_on_en_wiki_revise_retriever)
 
-baseline_paths=(en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.7_nprobe_10.json)
-baseline_names=(en_wiki_copyisallyouneed_nucleus_sampling_on_en_wiki)
+# baseline_paths=(en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.7_nprobe_10.json)
+# baseline_names=(en_wiki_copyisallyouneed_nucleus_sampling_on_en_wiki)
 
 for i in "${!baseline_paths[@]}"; do
     baseline_path=raw_files/${baseline_paths[i]}
