@@ -12,7 +12,6 @@ def parser_args():
     parser.add_argument('--model', type=str)
     parser.add_argument('--recall_topk', type=int, default=20)
     parser.add_argument('--decoding_method', type=str)
-    parser.add_argument('--random_seed', type=float)
     return parser.parse_args()
 
 def main_generation(**args):
@@ -23,9 +22,6 @@ def main_generation(**args):
     # knnlm also load the best gpt2 checkpoint
     agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/gpt2/best_2003_10000.pt')
     print(f'[!] init model over')
-
-    seed = args['random_seed']
-    print(f'[!] random seed: {seed}')
 
     collection = []
     with open(f'../data/{args["dataset"]}_1024/test.txt') as f:
@@ -42,8 +38,6 @@ def main_generation(**args):
         print(f'[!] collect {len(texts)} valid samples which have at least 32 tokens in prefix')
 
         for prefix, reference in tqdm(texts):
-            torch.manual_seed(seed)
-            torch.cuda.manual_seed_all(seed)
             text, time_cost = agent.knnlm_generation(prefix, decoding_method=args['decoding_method'], top_k=-1, top_p=0.95, temp=1., get_time_cost=True)
             collection.append({
                 'prefix': prefix, 
@@ -56,5 +50,5 @@ def main_generation(**args):
 if __name__ == "__main__":
     args = vars(parser_args())
     result = main_generation(**args)
-    with open(f'raw_files/random_runs_wikitext103_testset/{args["dataset"]}_knnlm_result_{args["decoding_method"]}_seed_{args["random_seed"]}.json', 'w') as f:
+    with open(f'raw_files/random_runs_wikitext103_testset/{args["dataset"]}_knnlm_result_{args["decoding_method"]}.json', 'w') as f:
         json.dump(result, f, indent=4)

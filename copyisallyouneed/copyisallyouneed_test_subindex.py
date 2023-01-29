@@ -24,8 +24,6 @@ def main_generation(**args):
     agent.load_model(f'{args["root_dir"]}/ckpt/wikitext103/copyisallyouneed/best_2003_400000.pt')
     print(f'[!] init model over')
 
-    torch.manual_seed(1.0)
-    torch.cuda.manual_seed_all(1.0)
 
     collection = []
     # with open(f'../data/{args["dataset"]}_1024/debug_test.txt') as f:

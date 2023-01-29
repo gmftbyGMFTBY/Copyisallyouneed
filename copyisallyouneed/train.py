@@ -27,12 +27,6 @@ def main(**args):
     args.update(config)
     train_data, train_iter, sampler = load_dataset(args)
     
-    # set seed
-    random.seed(args['seed'])
-    torch.manual_seed(args['seed'])
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args['seed'])
-    
     if args['local_rank'] == 0:
         sum_writer = SummaryWriter(
             log_dir=f'{args["root_dir"]}/rest/{args["dataset"]}/{args["model"]}/{args["version"]}',
