@@ -17,8 +17,9 @@ If you find our paper and resources useful, please kindly leave a star and cite 
 
 ### Catalogue:
 * <a href='#introduction'>1. Introduction</a>
-* <a href='#train the Models'>2. Train the Models</a>
-* <a href='#test with prefix'>3. Test the Models</a>
+* <a href='#prepare dataset'>2. Prepare the Dataset</a>
+* <a href='#train the Models'>3. Train the Models</a>
+* <a href='#test with prefix'>4. Test the Models</a>
     
 ****
 
@@ -34,10 +35,19 @@ Three benchmarks are used in this paper, and their preprocessing procedures are 
 
 ****
 
+<span id='prepare dataset'/>
+
+#### 2. Prepare the Dataset: <a href='#all_catelogue'>[Back to Top]</a>
+
+The corpus for Wikitext-103, Law-MT, and En-Wiki can be downloaded from [this link](https://pan.baidu.com/s/13JmmAZPN_5jLkSbS-V51rg) (with the code `ufhn`).
+For `wikitext-103`, `law-mt`, and `en-wiki` datasets, please move their corresponding `base_data_128.txt` and `test.txt` into `data/{dataset_name}_1024`,
+and conduct the commands in `data/README.md` to process theses datasets.
+
+****
 
 <span id='train the models'/>
 
-#### 2. Train the Models: <a href='#all_catelogue'>[Back to Top]</a>
+#### 3. Train the Models: <a href='#all_catelogue'>[Back to Top]</a>
 
 ##### 1. prepare the environment
 
