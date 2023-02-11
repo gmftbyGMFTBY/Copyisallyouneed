@@ -3,7 +3,9 @@
 After moving the datasets into their corresponding `{dataset_name}_1024` folder, the following commands should be conducted to process the datasets.
 Take the `Wikitext-103` corpus as the example:
 
-## 1. Build the Index for searching kNN documents for each document
+## 1. Build the FAISS Index 
+
+build the FAISS index on each corpus
 
 get into the work folder:
 
