@@ -95,7 +95,7 @@ Noted that the training args and details are listed under the `config/*.yaml`.
     ./scripts/train.sh wikitext103 copyisallyouneed 0,1,2,3,4,5,6,7
     ```
     
-##### 4. Test the Models
+##### 4. Test the Models: <a href='#all_catelogue'>[Back to Top]</a>
 
 After the training procedure, the following commands are conducted to generate the results file for automatic and human evaluations.
 More details about the inference can be found in these corresponding bash scripts.
