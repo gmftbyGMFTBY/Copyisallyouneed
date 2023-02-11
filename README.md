@@ -1,4 +1,4 @@
-# Copy is all you need
+# Source codes for `Copy is all you need`
 **Authors**: Tian Lan, Deng Cai, Yan Wang, Heyan Huang, Xian-Ling Mao
 
 **[Contact]** If you have any questions, feel free to contact me via (lantiangmftby at gmail.com).
