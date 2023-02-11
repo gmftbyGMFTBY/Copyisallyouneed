@@ -5,13 +5,6 @@
 
 This repository contains code other related resources of our paper "Copy is All You Need"
 
-****
-If you find our paper and resources useful, please kindly leave a star and cite our papers. Thanks!
-
-```bibtex
-```
-
-****
 
 <span id='all_catelogue'/>
 
