@@ -29,7 +29,7 @@ If you find our paper and resources useful, please kindly leave a star and cite 
 
 The dominant text generation models compose output by selecting words in a fixed vocabulary. In this paper, we formulate text generation as progressively copying text segments (e.g., words or phrases) from an existing text collection. We compute the contextualized representations of meaningful text segments and index them using efficient vector search toolkits. The task of text generation is then decomposed into a series of copy-and-paste operations: at each time step, we seek suitable text spans from existing articles in the text collection rather than selecting from a standalone vocabulary. Experiments on the standard language modeling benchmark (WikiText-103) show that our approach achieves better generation quality by coping from the original training data (0.758 vs. 0.691 MAUVE). We also show that our approach attains additional performance gains by simply scaling up to larger text collections without extra training. Furthermore, our approach allows for effective domain adaptation by simply switching to any domain-specific text collection, again without further training. Finally, we observe that our approach achieves better inference efficiency than standard token-level autoregressive models thanks to the reduction of decoding steps.
 
-<img src="./img/overview.png" width = "350" height = "200" alt="overview" align=center />
+<img src="./img/overview.png" width = "750" height = "500" alt="overview" align=center />
 
 Three benchmarks are used in this paper, and their preprocessing procedures are listed under `data` folder (`wikitext103`, `en_wiki`, `lawmt`).
 
