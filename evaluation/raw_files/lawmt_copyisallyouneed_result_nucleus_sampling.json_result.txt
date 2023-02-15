@@ -1,1 +1,0 @@
-Results for raw_files/lawmt_copyisallyouneed_result_nucleus_sampling.json MAUVE: 0.28141058771059135 Dataset size 908

@@ -1,1 +1,0 @@
-Results for raw_files/gpt2_result.json BLEURT: -0.3662 Dataset size 1516

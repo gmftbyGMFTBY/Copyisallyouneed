@@ -1,1 +1,0 @@
-Results for raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling_wikitext_index_on_en_wiki_testset_0.6.json MAUVE: 0.6620960873309438 Dataset size 500

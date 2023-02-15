@@ -1,1 +1,0 @@
-Results for raw_files/neurlab_gpt2_result_greedy.json MAUVE: 0.21509094300497567 Dataset size 1785

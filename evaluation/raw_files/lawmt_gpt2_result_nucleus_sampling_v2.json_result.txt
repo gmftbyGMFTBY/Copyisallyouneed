@@ -1,1 +1,0 @@
-Results for raw_files/lawmt_gpt2_result_nucleus_sampling_v2.json MAUVE: 0.26852683340158867 Dataset size 908

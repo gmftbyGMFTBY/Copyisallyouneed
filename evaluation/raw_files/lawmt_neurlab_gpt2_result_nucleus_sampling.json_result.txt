@@ -1,1 +1,0 @@
-Results for raw_files/lawmt_neurlab_gpt2_result_nucleus_sampling.json MAUVE: 0.22765989153969451 Dataset size 908

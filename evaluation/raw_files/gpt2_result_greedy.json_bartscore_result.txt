@@ -1,1 +1,0 @@
-Results for raw_files/gpt2_result_greedy.json BARTScore: -6.753 Dataset size 1790

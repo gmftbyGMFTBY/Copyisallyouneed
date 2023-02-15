@@ -1,1 +1,0 @@
-Results for raw_files/en_wiki_gpt2_result_nucleus_sampling_v2.json MAUVE: 0.6539013572350573 Dataset size 500

@@ -1,1 +1,0 @@
-Results for raw_files/en_wiki_gpt2_result_greedy_v2.json MAUVE: 0.3945641292894737 Dataset size 500

@@ -1,1 +1,0 @@
-Results for raw_files/lawmt_gpt2_result_greedy_v2.json MAUVE: 0.23001614716028038 Dataset size 908
