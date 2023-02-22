@@ -5,6 +5,19 @@
 
 This repository contains code other related resources of our paper "Copy is All You Need"
 
+****
+```
+@inproceedings{
+lan2023copy,
+title={Copy is All You Need},
+author={Tian Lan and Deng Cai and Yan Wang and Heyan Huang and Xian-Ling Mao},
+booktitle={The Eleventh International Conference on Learning Representations },
+year={2023},
+url={https://openreview.net/forum?id=CROlOA9Nd8C}
+}
+```
+****
+
 
 <span id='all_catelogue'/>
 
