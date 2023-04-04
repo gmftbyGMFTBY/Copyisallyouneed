@@ -16,7 +16,7 @@ cd dpr_wikitext103_1024
 build the index 
 
 ```bash
-./build_index.sh
+./build_index.sh 0,1,2,3,4,5,6,7
 ```
 
 search the top-k documents for each given document
