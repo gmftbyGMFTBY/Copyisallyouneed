@@ -22,7 +22,7 @@ build the index
 search the top-k documents for each given document
 
 ```bash
-./dpr_search.sh
+./dpr_search.sh 0,1,2,3,4,5,6,7
 ```
 
 running this command will generate the results file under `wikitext103_1024` folder
