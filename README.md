@@ -1,30 +1,17 @@
-# Source codes for `Copy is all you need`
-**Authors**: Tian Lan, Deng Cai, Yan Wang, Heyan Huang, Xian-Ling Mao
+# Source code for [Copy is All You Need](https://arxiv.org/pdf/2307.06962.pdf)
 
-**[Contact]** If you have any questions, feel free to contact me via (lantiangmftby at gmail.com).
+This repository contains code and resources of our paper,
 
-This repository contains code other related resources of our paper "Copy is All You Need"
+[Copy is All You Need](https://arxiv.org/pdf/2307.06962.pdf). ICLR2023
 
-****
-```
-@inproceedings{
-lan2023copy,
-title={Copy is All You Need},
-author={Tian Lan and Deng Cai and Yan Wang and Heyan Huang and Xian-Ling Mao},
-booktitle={The Eleventh International Conference on Learning Representations },
-year={2023},
-url={https://openreview.net/forum?id=CROlOA9Nd8C}
-}
-```
-****
-
+Tian Lan, Deng Cai, Yan Wang, Heyan Huang, Xian-Ling Mao
 
 <span id='all_catelogue'/>
 
 ### Catalogue:
 * <a href='#introduction'>1. Introduction</a>
 * <a href='#prepare dataset'>2. Prepare the Dataset</a>
-* <a href='#train the Models'>3. Train the Models</a>
+* <a href='#train the models'>3. Train the Models</a>
 * <a href='#test with prefix'>4. Test the Models</a>
     
 ****
@@ -35,7 +22,7 @@ url={https://openreview.net/forum?id=CROlOA9Nd8C}
 
 The dominant text generation models compose output by selecting words in a fixed vocabulary. In this paper, we formulate text generation as progressively copying text segments (e.g., words or phrases) from an existing text collection. We compute the contextualized representations of meaningful text segments and index them using efficient vector search toolkits. The task of text generation is then decomposed into a series of copy-and-paste operations: at each time step, we seek suitable text spans from existing articles in the text collection rather than selecting from a standalone vocabulary. Experiments on the standard language modeling benchmark (WikiText-103) show that our approach achieves better generation quality by coping from the original training data (0.758 vs. 0.691 MAUVE). We also show that our approach attains additional performance gains by simply scaling up to larger text collections without extra training. Furthermore, our approach allows for effective domain adaptation by simply switching to any domain-specific text collection, again without further training. Finally, we observe that our approach achieves better inference efficiency than standard token-level autoregressive models thanks to the reduction of decoding steps.
 
-<img src="./img/overview.png" width = "1000" height = "400" alt="overview" align=center />
+<img src="./img/overview.png" alt="overview" align=center />
 
 Three benchmarks are used in this paper, and their preprocessing procedures are listed under `data` folder (`wikitext103`, `en_wiki`, `lawmt`).
 
@@ -107,7 +94,8 @@ Noted that the training args and details are listed under the `config/*.yaml`.
     ```bash
     ./scripts/train.sh wikitext103 copyisallyouneed 0,1,2,3,4,5,6,7
     ```
-    
+<span id='test with prefix'/>
+
 ##### 4. Test the Models: <a href='#all_catelogue'>[Back to Top]</a>
 
 After the training procedure, the following commands are conducted to generate the results file for automatic and human evaluations.
@@ -146,4 +134,21 @@ For the human evaluation, move these files to the `make_human_evaluation/raw_fil
 ```
 
 More details about the human evaluation can be found in `make_human_evaluation/README.md`.
+
+
+#### Contact
+If you have any questions, feel free to contact me via (lantiangmftby at gmail.com).
+
+
+#### Citation
+```
+@inproceedings{
+    lan2023copy,
+    title={Copy is All You Need},
+    author={Tian Lan and Deng Cai and Yan Wang and Heyan Huang and Xian-Ling Mao},
+    booktitle={The Eleventh International Conference on Learning Representations },
+    year={2023},
+    url={https://openreview.net/forum?id=CROlOA9Nd8C}
+}
+```
 
