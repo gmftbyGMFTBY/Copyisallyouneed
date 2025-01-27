@@ -1,12 +1,15 @@
+**update: a new version of CoG is presented in ICLR2024**
+[Retrieval is Accurate Generation](https://arxiv.org/abs/2402.17532). ICLR2024
+
 # Source code for [Copy is All You Need](https://arxiv.org/pdf/2307.06962.pdf)
 
 This repository contains code and resources of our paper,
 
 [Copy is All You Need](https://arxiv.org/pdf/2307.06962.pdf). ICLR2023
 
-Tian Lan, Deng Cai, Yan Wang, Heyan Huang, Xian-Ling Mao
-
 <span id='all_catelogue'/>
+
+
 
 ### Catalogue:
 * <a href='#introduction'>1. Introduction</a>
@@ -146,7 +149,7 @@ If you have any questions, feel free to contact me via (lantiangmftby at gmail.c
     lan2023copy,
     title={Copy is All You Need},
     author={Tian Lan and Deng Cai and Yan Wang and Heyan Huang and Xian-Ling Mao},
-    booktitle={The Eleventh International Conference on Learning Representations },
+    booktitle={The Eleventh International Conference on Learning Representations},
     year={2023},
     url={https://openreview.net/forum?id=CROlOA9Nd8C}
 }
